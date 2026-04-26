@@ -17,6 +17,8 @@ Strict throughput SLAs are deferred to v1.2.
 - Generation failure marks message state and exposes retry.
 - Retry successfully produces a new assistant response record.
 
+Detailed execution checklist: [`docs/mvp-smoke-checklist.md`](mvp-smoke-checklist.md)
+
 ## Device/Test Matrix (Initial)
 
 - iPhone 16 Pro on iOS 26.4+
@@ -34,6 +36,13 @@ Collect for diagnostics only:
 - `generationFailed`
 
 Metrics should be local development diagnostics, not telemetry uploads in v1.
+
+### Current implementation hooks
+
+- `ChatViewModel.lastGenerationMetrics`
+- `MetricsRecorder` protocol for pluggable sinks
+- `ConsoleMetricsRecorder` default local logging sink
+- `InMemoryMetricsRecorder` for test/dev assertions
 
 ## Exit Criteria for MVP
 

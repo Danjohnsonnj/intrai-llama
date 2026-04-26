@@ -13,4 +13,15 @@ public struct AppComposition {
         let messageRepository = SwiftDataMessageRepository(context: modelContext)
         return (sessionRepository, messageRepository)
     }
+
+    @MainActor
+    public static func makeChatViewModel(modelContext: ModelContext) -> ChatViewModel {
+        let repositories = makeRepositories(modelContext: modelContext)
+        let inferenceEngine = LlamaCppInferenceEngine()
+        return ChatViewModel(
+            sessionRepository: repositories.sessionRepository,
+            messageRepository: repositories.messageRepository,
+            inferenceEngine: inferenceEngine
+        )
+    }
 }
