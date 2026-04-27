@@ -65,7 +65,9 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Embedded `llama.cpp` loaded through `llama.xcframework`.
 - XCFramework build path is iOS-only for MVP (iphoneos + iphonesimulator slices).
 - No local server boundary in v1.
-- Model selected via manual `.gguf` import.
+- Model selected via manual `.gguf` import; files are copied into Application Support/Models
+  after a security-scoped read so loads succeed after the document picker closes.
+- Resume closed app (force quit or system closed) with previously selected model, if it is still accessible.
 - Streaming generation loop emits chunks to the UI.
 
 ### Context Assembly Pipeline
@@ -93,6 +95,8 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Memory snapshot freeze/refresh workflow
 - Rich markdown rendering/export pipeline
 
+## Future Product Requirements and Improvements
+
 ## Known Pending Items
 
 - Wire real `llama.cpp` tokenization/sampling loop in `LlamaCppRuntime`.
@@ -103,4 +107,4 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Add AirDrop-based `.gguf` transfer workflow (no iCloud requirement) as part of
   model acquisition UX.
 - Establish measurable performance targets in v1.2.
-- Expand device support matrix after v1 stability validation.
+- ~Expand device support matrix after v1 stability validation.~

@@ -32,17 +32,25 @@
 
 ## 3) Manual Model Import Flow (MVP)
 
-1. User opens model settings/import action.
-2. App presents file importer constrained to `.gguf`.
-3. App validates selected file path and loadability.
-4. `InferenceEngine.loadModel` is called.
+1. User taps "Load Model".
+2. App presents a file importer constrained to `.gguf`.
+3. App starts security-scoped access to the picked URL, validates the file (exists,
+   readable, non-zero size), and copies it into app-managed storage under
+   Application Support/Models/ (same filename; replaces prior copy of that name).
+4. `InferenceEngine.loadModel` is called with the app-local file URL.
 5. UI surfaces loaded model status.
+
+Re-importing the same filename refreshes the stored copy. Inference always reads the
+stabilized path so loading does not depend on the Files provider session after the
+picker dismisses.
 
 ### Failure Cases
 
 - Invalid extension -> reject and show model format guidance.
-- Model load failure -> preserve previous model state and show clear error.
-- Missing access/bookmark issue -> request re-selection.
+- Unreadable or empty file -> show a specific error; suggest moving the file to On
+  My iPhone and retrying.
+- Copy or storage failure -> show error; previous model state remains unless load succeeds.
+- llama.cpp load failure (unsupported or corrupt GGUF) -> show error with guidance.
 
 ## 4) Error and Recovery Flows
 

@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 #if canImport(llama)
 import llama
@@ -8,26 +9,59 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
     private var context: OpaquePointer?
     private var shouldCancel = false
 
+    private var generationSampler: UnsafeMutablePointer<llama_sampler>?
+    private var promptTokenBuffer: UnsafeMutablePointer<llama_token>?
+    private var decSingleToken: UnsafeMutablePointer<llama_token>?
+
+    private var nPos: Int = 0
+    private var nPrompt: Int = 0
+    private var nPredict: Int = 0
+    private var lastSampledToken: llama_token = 0
+    private var hasActiveGeneration: Bool = false
+
+    private static let abortTrampoline: @convention(c) (UnsafeMutableRawPointer?) -> Bool = { data in
+        guard let data else { return false }
+        let runtime = Unmanaged<LlamaCppRuntime>.fromOpaque(data).takeUnretainedValue()
+        return runtime.shouldCancel
+    }
+
     public init() {}
 
     deinit {
-        unloadModel()
+        releaseGenerationState(freeContext: true)
         llama_backend_free()
     }
 
     public func loadModel(path: String) throws {
-        unloadModel()
+        releaseGenerationState(freeContext: true)
         shouldCancel = false
+
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: path) else {
+            throw IntraiError.modelLoadFailed(reason: "Model file not found on disk.")
+        }
+        guard fileManager.isReadableFile(atPath: path) else {
+            throw IntraiError.modelLoadFailed(reason: "Model file is not readable.")
+        }
+        let attributes = try fileManager.attributesOfItem(atPath: path)
+        let size = attributes[.size] as? UInt64 ?? 0
+        guard size > 0 else {
+            throw IntraiError.modelLoadFailed(reason: "Model file is empty.")
+        }
 
         llama_backend_init()
 
         var modelParams = llama_model_default_params()
 #if targetEnvironment(simulator)
         modelParams.n_gpu_layers = 0
+#else
+        modelParams.n_gpu_layers = -1
 #endif
 
         guard let loadedModel = llama_model_load_from_file(path, modelParams) else {
-            throw IntraiError.modelLoadFailed(reason: "Unable to load model at \(path)")
+            throw IntraiError.modelLoadFailed(
+                reason: "llama.cpp could not load the model file. The file may be corrupt or an unsupported format."
+            )
         }
 
         var contextParams = llama_context_default_params()
@@ -47,42 +81,226 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
     }
 
     public func unloadModel() {
-        if let currentContext = context {
-            llama_free(currentContext)
-            context = nil
-        }
-
-        if let currentModel = model {
-            llama_model_free(currentModel)
-            model = nil
-        }
+        releaseGenerationState(freeContext: true)
     }
 
     public func startGeneration(prompt: String, options: GenerationOptions) throws {
-        guard context != nil, model != nil else {
+        guard let ctx = context, let mdl = model else {
             throw IntraiError.modelNotLoaded
         }
-        _ = prompt
-        _ = options
         shouldCancel = false
-        // Tokenization/sampling loop is intentionally added in a later pass.
+        releaseGenerationState(freeContext: false)
+
+        if llama_model_has_encoder(mdl) {
+            throw IntraiError.generationFailed(
+                reason: "Encoder–decoder models are not supported yet. Use a text-only (decoder) GGUF model."
+            )
+        }
+
+        let formatted = makeFormattedChatPrompt(userText: prompt, model: mdl)
+        let vocab = llama_model_get_vocab(mdl)
+
+        let nTok = formatted.withCString { cstr in
+            Int32(-llama_tokenize(vocab, cstr, Int32(strlen(cstr)), nil, 0, false, true))
+        }
+        guard nTok > 0 else {
+            throw IntraiError.generationFailed(reason: "Failed to tokenize the prompt (empty or invalid).")
+        }
+        if Int(nTok) > 2000 {
+            throw IntraiError.generationFailed(reason: "The prompt is too long for the current context (2048 tokens).")
+        }
+
+        let buf = UnsafeMutablePointer<llama_token>.allocate(capacity: Int(nTok))
+        let written = formatted.withCString { cstr in
+            llama_tokenize(vocab, cstr, Int32(strlen(cstr)), buf, nTok, false, true)
+        }
+        guard written >= 0 else {
+            buf.deallocate()
+            throw IntraiError.generationFailed(reason: "Tokenization failed.")
+        }
+
+        let mem = llama_get_memory(ctx)
+        llama_memory_clear(mem, true)
+
+        decSingleToken = UnsafeMutablePointer<llama_token>.allocate(capacity: 1)
+
+        var sp = llama_sampler_chain_default_params()
+        sp.no_perf = true
+        guard let smpl = llama_sampler_chain_init(sp) else {
+            buf.deallocate()
+            decSingleToken?.deallocate()
+            decSingleToken = nil
+            throw IntraiError.generationFailed(reason: "Failed to create sampler.")
+        }
+        let temp = max(0.0, min(2.0, options.temperature))
+        if temp < 0.0001 {
+            llama_sampler_chain_add(smpl, llama_sampler_init_greedy())
+        } else {
+            llama_sampler_chain_add(smpl, llama_sampler_init_top_k(40))
+            llama_sampler_chain_add(smpl, llama_sampler_init_top_p(0.95, 1))
+            llama_sampler_chain_add(smpl, llama_sampler_init_temp(Float(temp)))
+            llama_sampler_chain_add(smpl, llama_sampler_init_dist(LLAMA_DEFAULT_SEED))
+        }
+        generationSampler = smpl
+
+        let ctxLimit = 2048
+        let capNew = max(0, ctxLimit - Int(nTok) - 1)
+        nPredict = min(max(0, options.maxTokens), capNew)
+        nPrompt = Int(nTok)
+        promptTokenBuffer = buf
+        nPos = 0
+        lastSampledToken = 0
+        hasActiveGeneration = nPredict > 0
+
+        if nPredict == 0 {
+            releaseGenerationState(freeContext: false)
+            throw IntraiError.generationFailed(
+                reason: "No room left in context for a reply. Try a shorter message."
+            )
+        }
+
+        llama_set_abort_callback(ctx, Self.abortTrampoline, Unmanaged.passUnretained(self).toOpaque())
     }
 
     public func nextTokenChunk() throws -> String? {
-        guard context != nil else {
+        guard let ctx = context, let mdl = model, let smpl = generationSampler, let pBuf = promptTokenBuffer, let sBuf = decSingleToken else {
+            if model != nil, context != nil, !hasActiveGeneration { return nil }
             throw IntraiError.modelNotLoaded
         }
-
         if shouldCancel {
+            releaseGenerationState(freeContext: false)
+            return nil
+        }
+        guard hasActiveGeneration else { return nil }
+
+        let vocab = llama_model_get_vocab(mdl)
+
+        let batch: llama_batch
+        if nPos == 0 {
+            batch = llama_batch_get_one(pBuf, Int32(nPrompt))
+        } else {
+            sBuf.pointee = lastSampledToken
+            batch = llama_batch_get_one(sBuf, 1)
+        }
+
+        let batchLen = Int(batch.n_tokens)
+        if nPos + batchLen >= nPrompt + nPredict {
+            releaseGenerationState(freeContext: false)
             return nil
         }
 
-        // Placeholder behavior while generation loop is implemented incrementally.
-        return nil
+        let dret = llama_decode(ctx, batch)
+        if dret < 0 {
+            releaseGenerationState(freeContext: false)
+            throw IntraiError.generationFailed(reason: "Inference error during decode (code \(dret)).")
+        }
+        if dret == 1 {
+            releaseGenerationState(freeContext: false)
+            throw IntraiError.generationFailed(reason: "Context full — try a shorter message.")
+        }
+        nPos += batchLen
+
+        let newId = llama_sampler_sample(smpl, ctx, -1)
+        if llama_vocab_is_eog(vocab, newId) {
+            releaseGenerationState(freeContext: false)
+            return nil
+        }
+
+        var piece = [CChar](repeating: 0, count: 512)
+        var n = llama_token_to_piece(vocab, newId, &piece, Int32(piece.count), 0, true)
+        if n < 0 {
+            let need = -Int(n)
+            piece = [CChar](repeating: 0, count: need + 1)
+            n = llama_token_to_piece(vocab, newId, &piece, Int32(piece.count), 0, true)
+        }
+        lastSampledToken = newId
+
+        guard n > 0 else { return "" }
+        let clen = min(Int(n), piece.count)
+        if clen < piece.count {
+            piece[clen] = 0
+        } else {
+            piece[clen - 1] = 0
+        }
+        return String(cString: piece)
     }
 
     public func cancelGeneration() {
         shouldCancel = true
+    }
+
+    // MARK: - Internals
+
+    private func makeFormattedChatPrompt(userText: String, model: OpaquePointer) -> String {
+        guard let tmplPtr = llama_model_chat_template(model, nil) else {
+            return Self.fallbackQwen25Chat(userText)
+        }
+        let template = String(cString: tmplPtr)
+        if template.isEmpty {
+            return Self.fallbackQwen25Chat(userText)
+        }
+
+        return "user".withCString { userRole in
+            userText.withCString { userContent in
+                var message = llama_chat_message(role: userRole, content: userContent)
+                var out = [CChar](repeating: 0, count: 256_000)
+                let written = withUnsafePointer(to: &message) { msgPtr in
+                    template.withCString { tmplC in
+                        Int(llama_chat_apply_template(
+                            tmplC,
+                            msgPtr,
+                            1,
+                            true,
+                            &out,
+                            Int32(out.count)
+                        ))
+                    }
+                }
+                if written < 0 || written >= out.count {
+                    return Self.fallbackQwen25Chat(userText)
+                }
+                out[written] = 0
+                guard let s = String(validatingUTF8: out) else {
+                    return Self.fallbackQwen25Chat(userText)
+                }
+                if s.isEmpty { return Self.fallbackQwen25Chat(userText) }
+                return s
+            }
+        }
+    }
+
+    private static func fallbackQwen25Chat(_ userText: String) -> String {
+        // Last-resort ChatML: primary path uses `llama_model_chat_template` + `llama_chat_apply_template`.
+        "<" + "|im_start|>user\n\(userText)<" + "|im_end|>\n<|im_start|>assistant\n"
+    }
+
+    private func releaseGenerationState(freeContext: Bool) {
+        if let ctx = context {
+            llama_set_abort_callback(ctx, nil, nil)
+        }
+        if let s = generationSampler {
+            llama_sampler_free(s)
+            generationSampler = nil
+        }
+        promptTokenBuffer?.deallocate()
+        promptTokenBuffer = nil
+        decSingleToken?.deallocate()
+        decSingleToken = nil
+        nPos = 0
+        nPrompt = 0
+        nPredict = 0
+        lastSampledToken = 0
+        hasActiveGeneration = false
+
+        guard freeContext else { return }
+        if let c = context {
+            llama_free(c)
+            context = nil
+        }
+        if let m = model {
+            llama_model_free(m)
+            model = nil
+        }
     }
 }
 

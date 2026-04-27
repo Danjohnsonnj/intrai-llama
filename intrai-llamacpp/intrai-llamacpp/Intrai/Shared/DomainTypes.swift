@@ -29,3 +29,18 @@ public enum IntraiError: Error, Sendable {
     case generationFailed(reason: String)
     case persistenceFailed(reason: String)
 }
+
+extension IntraiError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .modelNotLoaded:
+            return "No model is loaded."
+        case .modelLoadFailed(let reason):
+            return reason
+        case .generationFailed(let reason):
+            return reason
+        case .persistenceFailed(let reason):
+            return reason
+        }
+    }
+}

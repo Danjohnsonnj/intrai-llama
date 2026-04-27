@@ -39,6 +39,7 @@ public struct ChatRootView: View {
             switch result {
             case .success(let urls):
                 guard let url = urls.first else { return }
+                // loadModel() opens security-scoped access, copies into app storage, then loads.
                 Task { await viewModel.loadModel(from: url) }
             case .failure(let error):
                 viewModel.reportUserFacingError("Model import failed: \(error.localizedDescription)")

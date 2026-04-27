@@ -18,7 +18,8 @@ Use this checklist during manual validation runs.
 
 ## Inference and Streaming
 
-- [ ] Manual `.gguf` import succeeds
+- [ ] Manual `.gguf` import succeeds (file copied under Application Support/Models; not dependent on Files session after dismiss)
+- [ ] Re-importing the same `.gguf` filename refreshes the stored copy and loads
 - [ ] Sending prompt creates user + assistant placeholder entries
 - [ ] Assistant message streams incrementally
 - [ ] Cancel generation marks assistant message as `cancelled`

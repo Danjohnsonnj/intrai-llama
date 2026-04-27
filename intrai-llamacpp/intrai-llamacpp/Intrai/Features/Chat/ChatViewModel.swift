@@ -100,17 +100,29 @@ public final class ChatViewModel {
         }
     }
 
-    public func loadModel(from modelURL: URL) async {
-        guard modelURL.pathExtension.lowercased() == "gguf" else {
+    public func loadModel(from pickedModelURL: URL) async {
+        guard pickedModelURL.pathExtension.lowercased() == "gguf" else {
             setError("Invalid model type. Please select a .gguf model file.")
             return
         }
 
+        let didStartSecurityScope = pickedModelURL.startAccessingSecurityScopedResource()
+        defer {
+            if didStartSecurityScope {
+                pickedModelURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
         do {
-            try await inferenceEngine.loadModel(from: modelURL)
+            try ImportedModelStore.preflightSource(at: pickedModelURL)
+            let localModelURL = try ImportedModelStore.copyToAppModelsDirectory(from: pickedModelURL)
+            try await inferenceEngine.loadModel(from: localModelURL)
             modelLoaded = true
-            loadedModelName = modelURL.lastPathComponent
+            loadedModelName = localModelURL.lastPathComponent
             clearError()
+        } catch let error as IntraiError {
+            modelLoaded = false
+            setError("Failed to load model: \(error.localizedDescription)")
         } catch {
             modelLoaded = false
             setError("Failed to load model: \(error.localizedDescription)")
