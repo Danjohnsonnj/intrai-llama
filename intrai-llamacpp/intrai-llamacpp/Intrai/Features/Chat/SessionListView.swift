@@ -8,17 +8,22 @@ struct SessionListView: View {
     var body: some View {
         List(selection: $viewModel.selectedSessionID) {
             ForEach(viewModel.sessions) { session in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(session.title)
-                        .font(.body.weight(.medium))
-                        .lineLimit(1)
-                    Text(session.updatedAt, style: .relative)
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(session.title)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(1)
+                        HStack(spacing: 3) {
+                            Text("Last updated:")
+                            Text(session.updatedAt, style: .relative)
+                        }
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 6)
-                    .tag(session.id)
-                    .contextMenu {
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Menu {
                         Button("Rename") {
                             renameTitleDraft = session.title
                             sessionPendingRename = session
@@ -26,7 +31,42 @@ struct SessionListView: View {
                         Button("Delete", role: .destructive) {
                             Task { await viewModel.deleteSession(id: session.id) }
                         }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(6)
+                            .background(Color(uiColor: .tertiarySystemFill))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 2)
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(rowBackgroundColor(for: session))
+                        .padding(.vertical, 2)
+                )
+                .tag(session.id)
+                .contextMenu {
+                    Button("Rename") {
+                        renameTitleDraft = session.title
+                        sessionPendingRename = session
+                    }
+                    Button("Delete", role: .destructive) {
+                        Task { await viewModel.deleteSession(id: session.id) }
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button("Delete", role: .destructive) {
+                        Task { await viewModel.deleteSession(id: session.id) }
+                    }
+                    Button("Rename") {
+                        renameTitleDraft = session.title
+                        sessionPendingRename = session
+                    }
+                    .tint(.blue)
+                }
             }
         }
         .onChange(of: viewModel.selectedSessionID) { _, newValue in
@@ -37,6 +77,27 @@ struct SessionListView: View {
             renameChatSheet(session: session)
         }
         .listStyle(.insetGrouped)
+        .overlay {
+            if viewModel.sessions.isEmpty {
+                ContentUnavailableView {
+                    Label("No chats yet", systemImage: "bubble.left.and.bubble.right")
+                } description: {
+                    Text("Create a new chat to get started.")
+                } actions: {
+                    Button("New chat") {
+                        Task { await viewModel.createSession() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+        }
+    }
+
+    private func rowBackgroundColor(for session: ChatSessionRecord) -> Color {
+        if viewModel.selectedSessionID == session.id {
+            return Color.accentColor.opacity(0.14)
+        }
+        return Color(uiColor: .secondarySystemBackground).opacity(0.5)
     }
 
     @ViewBuilder

@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 public struct ChatRootView: View {
     @State private var viewModel: ChatViewModel
     @State private var isShowingModelImporter = false
+    @State private var isShowingGlobalSettings = false
 
     public init(viewModel: ChatViewModel) {
         _viewModel = State(wrappedValue: viewModel)
@@ -12,46 +13,82 @@ public struct ChatRootView: View {
     public var body: some View {
         ZStack {
             NavigationSplitView {
-                SessionListView(viewModel: viewModel)
-                    .navigationTitle("Intrai")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Load Model") {
-                                isShowingModelImporter = true
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                VStack(spacing: 10) {
+                    sidebarUtilityPanel
+                    SessionListView(viewModel: viewModel)
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .navigationTitle("Intrai")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            isShowingGlobalSettings = true
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
                         }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("New Chat") {
-                                Task { await viewModel.createSession() }
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
+                        .accessibilityLabel("Global settings")
                     }
+                }
             } detail: {
                 ChatThreadView(viewModel: viewModel)
             }
 
-            if viewModel.isRestoringModel {
-                Color.black.opacity(0.22)
+            if viewModel.isRestoringModel || viewModel.isLoadingModel {
+                Color.black.opacity(0.24)
                     .ignoresSafeArea()
                 VStack(spacing: 12) {
                     ProgressView()
                         .controlSize(.large)
-                    Text("Loading model...")
-                        .font(.callout.weight(.medium))
+                    Text(viewModel.isRestoringModel ? "Restoring model" : "Loading model")
+                        .font(.headline.weight(.semibold))
+                    Text(viewModel.isRestoringModel
+                        ? "We are loading your previously selected model."
+                        : "We are preparing the selected model for chat.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 20)
-                .padding(.vertical, 16)
+                .padding(.vertical, 18)
                 .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: Color.black.opacity(0.16), radius: 18, y: 8)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: Color.black.opacity(0.2), radius: 20, y: 8)
             }
         }
         .task {
             await viewModel.restoreLastModelIfAvailable()
             await viewModel.bootstrap()
+        }
+        .sheet(isPresented: $isShowingGlobalSettings) {
+            NavigationStack {
+                Form {
+                    Section("Global behavior (coming soon)") {
+                        LabeledContent("System prompt") {
+                            Text("Not configured")
+                                .foregroundStyle(.secondary)
+                        }
+                        LabeledContent("User memory") {
+                            Text("Not configured")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Section("Scope") {
+                        Text("These controls are global to the app, not per chat.")
+                        Text("A future option can apply system prompt updates to existing chats.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .navigationTitle("Global settings")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            isShowingGlobalSettings = false
+                        }
+                    }
+                }
+            }
         }
         .fileImporter(
             isPresented: $isShowingModelImporter,
@@ -84,5 +121,68 @@ public struct ChatRootView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+    }
+
+    private var sidebarUtilityPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Button("Load model") {
+                    isShowingModelImporter = true
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("New chat") {
+                    Task { await viewModel.createSession() }
+                }
+                .buttonStyle(.bordered)
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: modelStatusIcon)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(modelStatusColor)
+                Text(modelStatusText)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(12)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var modelStatusText: String {
+        if viewModel.isLoadingModel {
+            return "Loading selected model..."
+        }
+        if viewModel.isRestoringModel {
+            return "Restoring previous model..."
+        }
+        if let loadedModelName = viewModel.loadedModelName {
+            return "Ready: \(loadedModelName)"
+        }
+        return "No model loaded"
+    }
+
+    private var modelStatusIcon: String {
+        if viewModel.isLoadingModel {
+            return "arrow.triangle.2.circlepath"
+        }
+        if viewModel.isRestoringModel {
+            return "clock.arrow.circlepath"
+        }
+        return viewModel.loadedModelName == nil ? "exclamationmark.circle" : "checkmark.circle.fill"
+    }
+
+    private var modelStatusColor: Color {
+        if viewModel.isLoadingModel {
+            return .blue
+        }
+        if viewModel.isRestoringModel {
+            return .yellow
+        }
+        return viewModel.loadedModelName == nil ? .orange : .green
     }
 }

@@ -15,6 +15,7 @@ public final class ChatViewModel {
     public var selectedSessionID: UUID?
     public var draftMessage = ""
     public private(set) var isGenerating = false
+    public private(set) var isLoadingModel = false
     public private(set) var isRestoringModel = false
     public private(set) var modelLoaded = false
     public private(set) var loadedModelName: String?
@@ -113,6 +114,8 @@ public final class ChatViewModel {
                 pickedModelURL.stopAccessingSecurityScopedResource()
             }
         }
+        isLoadingModel = true
+        defer { isLoadingModel = false }
 
         do {
             try ImportedModelStore.preflightSource(at: pickedModelURL)
