@@ -54,6 +54,7 @@ public final class ChatViewModel {
     private var activeForcedRecapCompactionApplied = false
     private var activeRecapIntentMatched = false
     private var activePreflightHistoryTruncatedForSafety = false
+    private var autoRenamedSessionIDs: Set<UUID> = []
     private var rollingHistorySummaries: [UUID: String] = [:]
     private let recentMetricsWindowSize = 10
     private let pinnedRecentMessageCount = 12
@@ -76,6 +77,21 @@ public final class ChatViewModel {
         "recap",
         "catch me up",
         "summarize our conversation"
+    ]
+    private let autoTitlePrefix = "✦ "
+    private let autoTitleMaxWords = 10
+    private let autoTitleLeadingPhrasePatterns = [
+        "^can you\\s+",
+        "^could you\\s+",
+        "^would you\\s+",
+        "^please\\s+",
+        "^i need\\s+",
+        "^help me\\s+",
+        "^tell me\\s+",
+        "^show me\\s+"
+    ]
+    private let autoTitleTrimWords: Set<String> = [
+        "please", "thanks", "thank", "hey", "hi", "hello"
     ]
     private let adaptiveSlowSampleWindow = 8
     private let adaptiveSlowMinimumSamples = 3
@@ -319,6 +335,7 @@ public final class ChatViewModel {
 
                 do {
                     let decodeRequestAt = Date()
+                    var streamedAssistantText = ""
                     for try await chunk in await self.inferenceEngine.generateStream(
                         prompt: preflight.prompt,
                         options: options
@@ -326,6 +343,7 @@ public final class ChatViewModel {
                         guard let assistantID = self.activeAssistantMessageID else {
                             continue
                         }
+                        streamedAssistantText += chunk
                         pendingAssistantBuffer += chunk
                         streamedCharacterCount += chunk.count
                         if firstTokenAt == nil {
@@ -368,6 +386,11 @@ public final class ChatViewModel {
                             pendingAssistantBuffer = ""
                         }
                         try await self.messageRepository.markMessageComplete(messageID: assistantID)
+                        try await self.attemptAutoRenameSessionAfterFirstCompletedTurn(
+                            sessionID: sessionID,
+                            userInput: text,
+                            assistantOutput: streamedAssistantText
+                        )
                     }
                 } catch {
                     generationFailed = true
@@ -845,6 +868,99 @@ public final class ChatViewModel {
         await refreshSessions()
         selectedSessionID = session.id
         return session.id
+    }
+
+    private func attemptAutoRenameSessionAfterFirstCompletedTurn(
+        sessionID: UUID,
+        userInput: String,
+        assistantOutput: String
+    ) async throws {
+        guard !autoRenamedSessionIDs.contains(sessionID) else { return }
+        guard let session = sessions.first(where: { $0.id == sessionID }) else { return }
+        guard Self.isEligibleForAutoRename(sessionTitle: session.title) else { return }
+
+        let sessionMessages = try await messageRepository.listMessages(sessionID: sessionID)
+        let completedUserCount = sessionMessages.filter { $0.role == .user && $0.status == .complete }.count
+        let completedAssistantCount = sessionMessages.filter { $0.role == .assistant && $0.status == .complete }.count
+        guard completedUserCount == 1, completedAssistantCount == 1 else { return }
+
+        let autoTitle = Self.autoTitleFromFirstTurn(
+            userText: userInput,
+            assistantText: assistantOutput,
+            prefix: autoTitlePrefix,
+            maxWords: autoTitleMaxWords,
+            leadingPhrasePatterns: autoTitleLeadingPhrasePatterns,
+            trimWords: autoTitleTrimWords
+        )
+        guard autoTitle != session.title else {
+            autoRenamedSessionIDs.insert(sessionID)
+            return
+        }
+        try await sessionRepository.renameSession(id: sessionID, title: autoTitle)
+        autoRenamedSessionIDs.insert(sessionID)
+    }
+
+    static func isEligibleForAutoRename(sessionTitle: String) -> Bool {
+        let normalized = sessionTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return normalized == "new chat"
+    }
+
+    static func autoTitleFromFirstTurn(
+        userText: String,
+        assistantText: String,
+        prefix: String = "✦ ",
+        maxWords: Int = 5,
+        leadingPhrasePatterns: [String] = [],
+        trimWords: Set<String> = []
+    ) -> String {
+        let primaryWords = cleanedTitleWords(
+            from: userText,
+            leadingPhrasePatterns: leadingPhrasePatterns,
+            trimWords: trimWords
+        )
+        let fallbackWords = cleanedTitleWords(
+            from: assistantText,
+            leadingPhrasePatterns: leadingPhrasePatterns,
+            trimWords: trimWords
+        )
+        let sourceWords = primaryWords.count >= 2 ? primaryWords : (primaryWords + fallbackWords)
+        let limitedWords = Array(sourceWords.prefix(max(1, maxWords)))
+        if limitedWords.isEmpty {
+            return prefix + "New chat"
+        }
+        return prefix + naturalizeTitleWords(limitedWords)
+    }
+
+    private static func cleanedTitleWords(
+        from text: String,
+        leadingPhrasePatterns: [String],
+        trimWords: Set<String>
+    ) -> [String] {
+        var normalized = text
+            .lowercased()
+            .replacingOccurrences(of: "[^a-z0-9'\\s]", with: " ", options: .regularExpression)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        for pattern in leadingPhrasePatterns {
+            normalized = normalized.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        }
+        guard !normalized.isEmpty else { return [] }
+        var words = normalized.split(separator: " ").map(String.init)
+        while let first = words.first, trimWords.contains(first) {
+            words.removeFirst()
+        }
+        while let last = words.last, trimWords.contains(last) {
+            words.removeLast()
+        }
+        return words.filter { !$0.isEmpty }
+    }
+
+    private static func naturalizeTitleWords(_ words: [String]) -> String {
+        guard !words.isEmpty else { return "New chat" }
+        let sentence = words.joined(separator: " ")
+        return sentence.prefix(1).uppercased() + sentence.dropFirst()
     }
 
     private func handleGenerationFailure(prompt: String, error: Error) async {

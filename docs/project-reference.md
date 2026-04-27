@@ -24,6 +24,8 @@ Manual smoke testing on device is pending.
 - Persistent conversation history using SwiftData.
 - Session list recency timestamps use simplified buckets (`moments ago`, rounded minutes,
   rounded hours, whole days).
+- Chats titled `New Chat` can be auto-renamed once after the first successful turn with a
+  local 5-word summary prefixed by `✦ `; manual user renames are never overridden.
 - Assistant response streaming for active chat thread.
 - Manual `.gguf` model import and local model loading.
 - Markdown rendering in chat messages and markdown-formatted clipboard export.

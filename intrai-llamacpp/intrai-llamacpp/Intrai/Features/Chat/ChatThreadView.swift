@@ -6,9 +6,12 @@ struct ChatThreadView: View {
     let canCopyTranscript: Bool
     let onCopyTranscript: () -> Void
     private let bubbleRadius: CGFloat = 14
+    @State private var isShowingRenameSheet = false
+    @State private var renameTitleDraft = ""
 
     var body: some View {
         VStack(spacing: 0) {
+            titleBar
             header
             monitoringStrip
             Divider().opacity(0.6)
@@ -16,6 +19,33 @@ struct ChatThreadView: View {
             composer
         }
         .background(Color(uiColor: .systemBackground))
+        .sheet(isPresented: $isShowingRenameSheet) {
+            renameChatSheet
+        }
+    }
+
+    private var titleBar: some View {
+        HStack(spacing: 8) {
+            Text(selectedSessionTitle)
+                .font(.title2.weight(.semibold))
+                .lineLimit(1)
+            Button {
+                renameTitleDraft = selectedSessionTitle
+                isShowingRenameSheet = true
+            } label: {
+                Image(systemName: "pencil")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(6)
+                    .background(Color(uiColor: .tertiarySystemFill))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .accessibilityLabel("Rename chat title")
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 8)
     }
 
     private var header: some View {
@@ -395,5 +425,43 @@ struct ChatThreadView: View {
         let ttft = metrics.timeToFirstTokenMs.map { "\(Int($0.rounded()))ms TTFT" } ?? "TTFT unavailable"
         let duration = "\(Int(metrics.generationDurationMs.rounded()))ms total"
         return "\(ttft), \(duration), outcome: \(metrics.endReason.rawValue)"
+    }
+
+    private var selectedSessionTitle: String {
+        guard let sessionID = viewModel.selectedSessionID else {
+            return "Chat"
+        }
+        return viewModel.sessions.first(where: { $0.id == sessionID })?.title ?? "Chat"
+    }
+
+    @ViewBuilder
+    private var renameChatSheet: some View {
+        NavigationStack {
+            Form {
+                Section("Title") {
+                    TextField("Chat title", text: $renameTitleDraft)
+                        .textInputAutocapitalization(.sentences)
+                        .autocorrectionDisabled(false)
+                }
+            }
+            .navigationTitle("Rename chat")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { isShowingRenameSheet = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let title = renameTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !title.isEmpty, let sessionID = viewModel.selectedSessionID else { return }
+                        Task {
+                            await viewModel.renameSession(id: sessionID, title: title)
+                            isShowingRenameSheet = false
+                        }
+                    }
+                    .disabled(renameTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
     }
 }

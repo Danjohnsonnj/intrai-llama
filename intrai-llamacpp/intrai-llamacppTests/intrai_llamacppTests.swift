@@ -84,4 +84,30 @@ struct intrai_llamacppTests {
         #expect(error.localizedDescription == "Context full")
     }
 
+    @Test func autoTitleFromFirstTurnUsesPrefixAndWordLimit() async throws {
+        let title = ChatViewModel.autoTitleFromFirstTurn(
+            userText: "Can you help me compare q4 and q6 quantization choices for speed?",
+            assistantText: "",
+            leadingPhrasePatterns: ["^can you\\s+", "^help me\\s+"],
+            trimWords: ["for"]
+        )
+        #expect(title.hasPrefix("✦ "))
+        let wordsAfterPrefix = title.replacingOccurrences(of: "✦ ", with: "").split(separator: " ")
+        #expect(wordsAfterPrefix.count <= 5)
+    }
+
+    @Test func autoTitleFromFirstTurnFallsBackWhenInputIsEmpty() async throws {
+        let title = ChatViewModel.autoTitleFromFirstTurn(
+            userText: "",
+            assistantText: ""
+        )
+        #expect(title == "✦ New chat")
+    }
+
+    @Test func autoRenameEligibilityOnlyAllowsDefaultTitle() async throws {
+        #expect(ChatViewModel.isEligibleForAutoRename(sessionTitle: "New Chat"))
+        #expect(!ChatViewModel.isEligibleForAutoRename(sessionTitle: "✦ previous summary"))
+        #expect(!ChatViewModel.isEligibleForAutoRename(sessionTitle: "Custom topic"))
+    }
+
 }

@@ -18,6 +18,7 @@
 1. User invokes rename action from session list.
 2. App validates non-empty title.
 3. `ChatSession.title` updates and persists.
+4. Manual rename always takes precedence over automatic first-turn title generation.
 
 ### Delete Session
 
@@ -41,6 +42,8 @@
 6. `InferenceEngine.generateStream` begins.
 7. Chunks append to assistant message content in real time.
 8. On completion, assistant status becomes `complete`.
+9. For chats still titled `New Chat`, app may auto-rename once after the first successful
+   user+assistant turn using a local 5-word title prefixed with `✦ `.
 
 ### Monitoring Surface During Generation
 
