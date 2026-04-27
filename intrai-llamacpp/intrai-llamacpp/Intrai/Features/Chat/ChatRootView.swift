@@ -168,7 +168,8 @@ public struct ChatRootView: View {
                 Button("New chat") {
                     Task { await viewModel.createSession() }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
 
                 Spacer(minLength: 0)
             }

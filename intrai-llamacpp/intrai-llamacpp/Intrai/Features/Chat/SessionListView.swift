@@ -83,11 +83,6 @@ struct SessionListView: View {
                     Label("No chats yet", systemImage: "bubble.left.and.bubble.right")
                 } description: {
                     Text("Create a new chat to get started.")
-                } actions: {
-                    Button("New chat") {
-                        Task { await viewModel.createSession() }
-                    }
-                    .buttonStyle(.borderedProminent)
                 }
             }
         }
