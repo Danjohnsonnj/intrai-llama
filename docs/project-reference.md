@@ -22,6 +22,8 @@ Manual smoke testing on device is pending.
 
 - Multi-session chat creation, rename, and deletion.
 - Persistent conversation history using SwiftData.
+- Session list recency timestamps use simplified buckets (`moments ago`, rounded minutes,
+  rounded hours, whole days).
 - Assistant response streaming for active chat thread.
 - Manual `.gguf` model import and local model loading.
 - Markdown rendering in chat messages and markdown-formatted clipboard export.

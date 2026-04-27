@@ -15,7 +15,7 @@ struct SessionListView: View {
                             .lineLimit(1)
                         HStack(spacing: 3) {
                             Text("Last updated:")
-                            Text(session.updatedAt, style: .relative)
+                            Text(lastUpdatedLabel(for: session.updatedAt))
                         }
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -98,6 +98,32 @@ struct SessionListView: View {
             return Color.accentColor.opacity(0.14)
         }
         return Color(uiColor: .secondarySystemBackground).opacity(0.5)
+    }
+
+    private func lastUpdatedLabel(for updatedAt: Date, now: Date = .now) -> String {
+        let elapsedSeconds = max(0, now.timeIntervalSince(updatedAt))
+        if elapsedSeconds < 60 {
+            return "moments ago"
+        }
+
+        if elapsedSeconds < 3600 {
+            let roundedMinutes = Int((elapsedSeconds / 60).rounded())
+            if roundedMinutes >= 60 {
+                return "1 hour ago"
+            }
+            return roundedMinutes == 1 ? "1 minute ago" : "\(roundedMinutes) minutes ago"
+        }
+
+        if elapsedSeconds < 86_400 {
+            let roundedHours = Int((elapsedSeconds / 3600).rounded())
+            if roundedHours >= 24 {
+                return "1 day ago"
+            }
+            return roundedHours == 1 ? "1 hour ago" : "\(roundedHours) hours ago"
+        }
+
+        let days = Int(elapsedSeconds / 86_400)
+        return days == 1 ? "1 day ago" : "\(days) days ago"
     }
 
     @ViewBuilder

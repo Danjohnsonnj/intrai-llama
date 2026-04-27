@@ -7,6 +7,11 @@
 1. User taps "New Chat".
 2. App creates `ChatSession` with default title (for example, "New Chat").
 3. Empty thread view opens for that session.
+4. Session list metadata shows simplified relative update time:
+   - `< 1 minute`: `moments ago`
+   - `1 minute` to `< 1 hour`: rounded minutes only
+   - `1 hour` to `< 1 day`: rounded hours only
+   - `>= 1 day`: whole days (rounded down)
 
 ### Rename Session
 
