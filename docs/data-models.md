@@ -1,8 +1,11 @@
 # Intrai MVP Data Models
 
-## SwiftData Entity Definitions (Planned)
+The data layer uses a two-type pattern per domain concept: a SwiftData `@Model` entity
+for persistence and a lightweight `struct` record for passing across module boundaries.
 
-## `ChatSession`
+## SwiftData Entities
+
+## `ChatSessionEntity`
 
 - `id: UUID`
 - `title: String`
@@ -16,15 +19,20 @@
 - `updatedAt` is refreshed when a new message is added to the session.
 - Sessions are ordered by `updatedAt` descending in the sidebar.
 
-## `ChatMessage`
+## `ChatMessageEntity`
 
 - `id: UUID`
-- `session: ChatSession` (inverse relation)
-- `role: MessageRole` (`user` or `assistant`)
+- `session: ChatSessionEntity` (inverse relation, cascade delete)
+- `roleRaw: String` (backed by `MessageRole`: `user` or `assistant`)
 - `content: String`
-- `status: MessageStatus` (`pending`, `streaming`, `complete`, `failed`, `cancelled`)
+- `statusRaw: String` (backed by `MessageStatus`: `pending`, `streaming`, `complete`, `failed`, `cancelled`)
 - `createdAt: Date`
 - `errorReason: String?`
+
+## Domain Records
+
+- `ChatSessionRecord` and `ChatMessageRecord` are `Identifiable`, `Sendable` structs
+  mapped from entities via extensions in `ChatEntityMappings.swift`.
 
 ### Semantics
 

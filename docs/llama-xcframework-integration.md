@@ -1,4 +1,4 @@
-# llama.cpp XCFramework Integration (Step 3)
+# llama.cpp XCFramework Integration
 
 This document tracks the embedded `llama.cpp` integration path for Intrai MVP.
 MVP is explicitly iOS-only: iPhone 16 Pro+ on iOS 26.4+.
@@ -20,13 +20,16 @@ The script expects:
   - `iphoneos` (device)
   - `iphonesimulator` (simulator)
 
-## 2) Add framework to Xcode project
+## 2) Framework reference in Xcode project
 
-Once the Intrai Xcode project exists:
+The framework is already wired into the Xcode project file:
 
-1. Drag `vendor/llama/llama.xcframework` into project navigator.
-2. Add it to target `Frameworks, Libraries, and Embedded Content`.
-3. Ensure module import resolves as `import llama`.
+- `PBXFileReference` pointing to `../vendor/llama/llama.xcframework`
+- `PBXBuildFile` in the app target's Frameworks build phase
+- `OTHER_LDFLAGS = -lc++` for C++ standard library linkage
+- Module import resolves as `import llama`
+
+No manual drag-and-drop is needed after running the build script.
 
 ## 3) Runtime bridge and inference engine seams
 
@@ -42,9 +45,11 @@ Step 3 adds these concrete integration scaffolds:
 
 ## 4) Current limitations
 
-- Tokenization/sampling decode loop is intentionally placeholder in this step.
-- Full per-token generation logic is completed in a later implementation step.
-- Framework linking cannot be fully validated until project/target wiring exists.
+- Tokenization/sampling decode loop in `LlamaCppRuntime` is placeholder.
+  `startGeneration` and `nextTokenChunk` accept inputs but return `nil` immediately.
+  Wiring the real llama.cpp token decode loop is the next implementation step.
+- Framework linking and `import llama` module resolution are verified (build succeeds
+  with zero errors and zero warnings).
 
 ## 5) Scope guardrail
 

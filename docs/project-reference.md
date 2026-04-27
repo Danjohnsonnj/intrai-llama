@@ -9,7 +9,9 @@ The MVP is scoped to reliable core chat behavior on iPhone 16 Pro+ devices runni
 
 ## Current Status
 
-Discovery complete for MVP boundaries. Entering implementation with explicit phase splits.
+Core implementation complete. Xcode project builds with zero errors and zero warnings.
+The token generation loop in `LlamaCppRuntime` is a placeholder; wiring real `llama.cpp`
+tokenization and sampling is the next step. Manual smoke testing on device is pending.
 
 ---
 
@@ -45,14 +47,12 @@ Discovery complete for MVP boundaries. Entering implementation with explicit pha
   - `Data` for SwiftData entities and repositories
   - `Shared` for cross-cutting models/errors
 
-### Source Files (Planned)
+### Source Files
 
-- `docs/architecture.md`
-- `docs/data-models.md`
-- `docs/mvp-user-flows.md`
-- `docs/quality-gates.md`
-- `docs/phases-v1.1-v1.2.md`
+- Xcode project: `intrai-llamacpp/intrai-llamacpp.xcodeproj`
 - Canonical app source root: `intrai-llamacpp/intrai-llamacpp/Intrai`
+- Documentation: `docs/architecture.md`, `docs/data-models.md`, `docs/mvp-user-flows.md`,
+  `docs/quality-gates.md`, `docs/phases-v1.1-v1.2.md`, `docs/llama-xcframework-integration.md`
 
 ### Data Models
 
@@ -95,6 +95,8 @@ Discovery complete for MVP boundaries. Entering implementation with explicit pha
 
 ## Known Pending Items
 
+- Wire real `llama.cpp` tokenization/sampling loop in `LlamaCppRuntime`.
+- Run full MVP smoke checklist on physical device.
 - Define and ship in-app download flow in v1.1.
 - Establish measurable performance targets in v1.2.
 - Expand device support matrix after v1 stability validation.

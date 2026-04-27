@@ -51,16 +51,25 @@ The v1 release is intentionally strict and focused on core chat reliability.
 - **v1.1**: In-app model download workflow.
 - **v1.2**: Performance baseline and throughput target enforcement.
 
+## Current Status
+
+Core implementation is complete and the Xcode project builds with zero errors and zero
+warnings. The token generation loop in `LlamaCppRuntime` is a placeholder; wiring the
+real `llama.cpp` tokenization/sampling decode is the next implementation step.
+
 ## Building (MVP Workflow)
 
 Intrai integrates a locally built **iOS-only** `llama.xcframework` from `llama.cpp`.
 MVP intentionally excludes non-iOS framework slices to reduce build complexity and disk usage.
 
-1. Build iOS-only XCFramework from local `llama.cpp` clone:
-   - `chmod +x scripts/setup-llama-xcframework.sh`
-   - `./scripts/setup-llama-xcframework.sh`
-2. Add `vendor/llama/llama.xcframework` to the Intrai Xcode project.
-3. Build Intrai for iOS simulator/device from Xcode.
+1. Build the iOS-only XCFramework from the local `llama.cpp` clone:
+   ```bash
+   chmod +x scripts/setup-llama-xcframework.sh
+   ./scripts/setup-llama-xcframework.sh
+   ```
+2. Open `intrai-llamacpp/intrai-llamacpp.xcodeproj` in Xcode.
+   The framework reference is already wired in the project file.
+3. Build and run for iOS simulator or device.
 
 ## Documentation
 
@@ -69,11 +78,18 @@ MVP intentionally excludes non-iOS framework slices to reduce build complexity a
 - [Data Models](docs/data-models.md) - SwiftData schema and persistence semantics
 - [User Flows](docs/mvp-user-flows.md) - strict v1 UX flows and error behavior
 - [Quality Gates](docs/quality-gates.md) - test checklist and instrumentation for MVP stability
+- [XCFramework Integration](docs/llama-xcframework-integration.md) - build script and framework wiring details
 - [Roadmap Phases](docs/phases-v1.1-v1.2.md) - scoped requirements for v1.1 and v1.2
 
 ## Source Layout
 
+- Xcode project: `intrai-llamacpp/intrai-llamacpp.xcodeproj`
 - Canonical app source root: `intrai-llamacpp/intrai-llamacpp/Intrai`
+  - `App/` - entry point and dependency composition
+  - `Features/Chat/` - views and view model
+  - `Data/` - SwiftData entities, mappings, and repository implementations
+  - `Inference/` - `llama.cpp` bridge, runtime, and engine
+  - `Shared/` - domain types, errors, and metrics
 
 ## License
 
