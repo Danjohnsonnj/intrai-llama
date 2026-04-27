@@ -17,7 +17,19 @@ public struct ChatRootView: View {
             NavigationSplitView {
                 VStack(spacing: 10) {
                     sidebarUtilityPanel
-                    SessionListView(viewModel: viewModel)
+                    if viewModel.isRestoringModel || viewModel.isLoadingModel {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(uiColor: .secondarySystemBackground).opacity(0.35))
+                            .overlay(
+                                Text("Chats will appear when model restore finishes.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .padding()
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        SessionListView(viewModel: viewModel)
+                    }
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
