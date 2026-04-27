@@ -2,15 +2,26 @@ import SwiftUI
 
 struct SessionListView: View {
     @Bindable var viewModel: ChatViewModel
+    @State private var sessionPendingRename: ChatSessionRecord?
+    @State private var renameTitleDraft: String = ""
 
     var body: some View {
         List(selection: $viewModel.selectedSessionID) {
             ForEach(viewModel.sessions) { session in
-                Text(session.title)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(session.title)
+                        .font(.body.weight(.medium))
+                        .lineLimit(1)
+                    Text(session.updatedAt, style: .relative)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 6)
                     .tag(session.id)
                     .contextMenu {
                         Button("Rename") {
-                            Task { await viewModel.renameSession(id: session.id, title: "\(session.title) (Renamed)") }
+                            renameTitleDraft = session.title
+                            sessionPendingRename = session
                         }
                         Button("Delete", role: .destructive) {
                             Task { await viewModel.deleteSession(id: session.id) }
@@ -21,6 +32,41 @@ struct SessionListView: View {
         .onChange(of: viewModel.selectedSessionID) { _, newValue in
             guard let sessionID = newValue else { return }
             Task { await viewModel.loadMessages(for: sessionID) }
+        }
+        .sheet(item: $sessionPendingRename) { session in
+            renameChatSheet(session: session)
+        }
+        .listStyle(.insetGrouped)
+    }
+
+    @ViewBuilder
+    private func renameChatSheet(session: ChatSessionRecord) -> some View {
+        NavigationStack {
+            Form {
+                Section("Title") {
+                    TextField("Chat title", text: $renameTitleDraft)
+                        .textInputAutocapitalization(.sentences)
+                        .autocorrectionDisabled(false)
+                }
+            }
+            .navigationTitle("Rename chat")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { sessionPendingRename = nil }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        let title = renameTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !title.isEmpty else { return }
+                        Task {
+                            await viewModel.renameSession(id: session.id, title: title)
+                            sessionPendingRename = nil
+                        }
+                    }
+                    .disabled(renameTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
         }
     }
 }

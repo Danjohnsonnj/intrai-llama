@@ -43,6 +43,8 @@
 Re-importing the same filename refreshes the stored copy. Inference always reads the
 stabilized path so loading does not depend on the Files provider session after the
 picker dismisses.
+On app relaunch, the most recently loaded model is restored automatically when that
+stored file is still available in app-managed storage.
 
 ### Failure Cases
 

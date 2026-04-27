@@ -15,6 +15,7 @@ public final class ChatViewModel {
     public var selectedSessionID: UUID?
     public var draftMessage = ""
     public private(set) var isGenerating = false
+    public private(set) var isRestoringModel = false
     public private(set) var modelLoaded = false
     public private(set) var loadedModelName: String?
     public private(set) var errorMessage: String?
@@ -119,6 +120,7 @@ public final class ChatViewModel {
             try await inferenceEngine.loadModel(from: localModelURL)
             modelLoaded = true
             loadedModelName = localModelURL.lastPathComponent
+            ImportedModelStore.setLastLoadedModelName(localModelURL.lastPathComponent)
             clearError()
         } catch let error as IntraiError {
             modelLoaded = false
@@ -126,6 +128,51 @@ public final class ChatViewModel {
         } catch {
             modelLoaded = false
             setError("Failed to load model: \(error.localizedDescription)")
+        }
+    }
+
+    public func restoreLastModelIfAvailable() async {
+        guard let fileName = ImportedModelStore.lastLoadedModelName() else {
+            return
+        }
+
+        isRestoringModel = true
+        defer { isRestoringModel = false }
+
+        let modelURL: URL
+        do {
+            modelURL = try ImportedModelStore.modelURL(fileName: fileName)
+        } catch {
+            ImportedModelStore.clearLastLoadedModelName()
+            modelLoaded = false
+            loadedModelName = nil
+            return
+        }
+
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: modelURL.path), fileManager.isReadableFile(atPath: modelURL.path) else {
+            ImportedModelStore.clearLastLoadedModelName()
+            modelLoaded = false
+            loadedModelName = nil
+            return
+        }
+
+        do {
+            try ImportedModelStore.preflightSource(at: modelURL)
+            try await inferenceEngine.loadModel(from: modelURL)
+            modelLoaded = true
+            loadedModelName = fileName
+            clearError()
+        } catch let error as IntraiError {
+            ImportedModelStore.clearLastLoadedModelName()
+            modelLoaded = false
+            loadedModelName = nil
+            setError("Failed to restore previous model: \(error.localizedDescription)")
+        } catch {
+            ImportedModelStore.clearLastLoadedModelName()
+            modelLoaded = false
+            loadedModelName = nil
+            setError("Failed to restore previous model: \(error.localizedDescription)")
         }
     }
 

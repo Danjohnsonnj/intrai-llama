@@ -7,7 +7,7 @@ Strict throughput SLAs are deferred to v1.2.
 
 ## Smoke Checklist (MVP)
 
-- [ x ] App launches cleanly with empty and populated data stores.
+- [x] App launches cleanly with empty and populated data stores.
 - [ ] Session create/rename/delete persists across relaunch.
 - [ ] Session delete cascades message removal.
 - [ ] Manual `.gguf` import succeeds for at least one supported model.
@@ -21,9 +21,8 @@ Detailed execution checklist: [`docs/mvp-smoke-checklist.md`](mvp-smoke-checklis
 
 ## Device/Test Matrix (Initial)
 
-- [ ] iPhone 16 Pro on iOS 26.4+
-- [ ] iPhone 16 Pro Max on iOS 26.4+ (recommended secondary check)
-- [ ] iOS simulator for non-inference UI checks
+- [x] iPhone 16 Pro on iOS 26.4+
+- [x] iOS simulator for non-inference UI checks
 
 ## Instrumentation (Non-SLA in v1)
 

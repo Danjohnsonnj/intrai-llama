@@ -68,6 +68,7 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Model selected via manual `.gguf` import; files are copied into Application Support/Models
   after a security-scoped read so loads succeed after the document picker closes.
 - Resume closed app (force quit or system closed) with previously selected model, if it is still accessible.
+- Model name should be present on the main screen.
 - Streaming generation loop emits chunks to the UI.
 
 ### Context Assembly Pipeline
@@ -96,6 +97,10 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Rich markdown rendering/export pipeline
 
 ## Future Product Requirements and Improvements
+
+- [ ] User editable global "system prompt": persistent system prompt that dictates the AI's persona, core constraints, and response format, anchoring all user interactions to ensure consistent behavior, safety, and brand alignment across the entire conversation session
+    - [ ] An updated system prompt can optionally be applied to existing chats
+- [ ] User defined and editable global "user memory": persistently store and retrieve as needed explicit user preferences and factual history across sessions, injecting them into the context window to personalize responses, separate from static system prompt instructions.
 
 ## Known Pending Items
 

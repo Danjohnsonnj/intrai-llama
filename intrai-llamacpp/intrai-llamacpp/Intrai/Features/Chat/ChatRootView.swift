@@ -10,25 +10,47 @@ public struct ChatRootView: View {
     }
 
     public var body: some View {
-        NavigationSplitView {
-            SessionListView(viewModel: viewModel)
-                .navigationTitle("Intrai")
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Load Model") {
-                            isShowingModelImporter = true
+        ZStack {
+            NavigationSplitView {
+                SessionListView(viewModel: viewModel)
+                    .navigationTitle("Intrai")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Load Model") {
+                                isShowingModelImporter = true
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("New Chat") {
+                                Task { await viewModel.createSession() }
+                            }
+                            .buttonStyle(.borderedProminent)
                         }
                     }
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("New Chat") {
-                            Task { await viewModel.createSession() }
-                        }
-                    }
+            } detail: {
+                ChatThreadView(viewModel: viewModel)
+            }
+
+            if viewModel.isRestoringModel {
+                Color.black.opacity(0.22)
+                    .ignoresSafeArea()
+                VStack(spacing: 12) {
+                    ProgressView()
+                        .controlSize(.large)
+                    Text("Loading model...")
+                        .font(.callout.weight(.medium))
                 }
-        } detail: {
-            ChatThreadView(viewModel: viewModel)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(.thinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: Color.black.opacity(0.16), radius: 18, y: 8)
+            }
         }
         .task {
+            await viewModel.restoreLastModelIfAvailable()
             await viewModel.bootstrap()
         }
         .fileImporter(

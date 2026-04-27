@@ -4,24 +4,24 @@ Use this checklist during manual validation runs.
 
 ## Setup
 
-- [ ] Device: iPhone 16 Pro or newer Pro model on iOS 26.4+
-- [ ] Build uses local embedded `llama.xcframework`
-- [ ] Test `.gguf` model file available for import
+- [x] Device: iPhone 16 Pro or newer Pro model on iOS 26.4+
+- [x] Build uses local embedded `llama.xcframework`
+- [x] Test `.gguf` model file available for import
 
 ## Core Chat Reliability
 
-- [ ] Launch app with empty data store succeeds
-- [ ] Create session succeeds and appears in list
-- [ ] Rename session persists after relaunch
-- [ ] Delete session removes thread and related messages
-- [ ] Existing sessions/messages load correctly after relaunch
+- [x] Launch app with empty data store succeeds
+- [x] Create session succeeds and appears in list
+- [x] Rename session persists after relaunch
+- [x] Delete session removes thread and related messages
+- [x] Existing sessions/messages load correctly after relaunch
 
 ## Inference and Streaming
 
-- [ ] Manual `.gguf` import succeeds (file copied under Application Support/Models; not dependent on Files session after dismiss)
+- [x] Manual `.gguf` import succeeds (file copied under Application Support/Models; not dependent on Files session after dismiss)
 - [ ] Re-importing the same `.gguf` filename refreshes the stored copy and loads
-- [ ] Sending prompt creates user + assistant placeholder entries
-- [ ] Assistant message streams incrementally
+- [x] Sending prompt creates user + assistant placeholder entries
+- [x] Assistant message streams incrementally
 - [ ] Cancel generation marks assistant message as `cancelled`
 - [ ] Generation failure marks assistant message as `failed`
 - [ ] Retry from failed prompt produces a new assistant response
