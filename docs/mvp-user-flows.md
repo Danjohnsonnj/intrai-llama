@@ -73,6 +73,15 @@ stored file is still available in app-managed storage.
 1. User attempts to send prompt without active model.
 2. App blocks generation and prompts user to import/load a model.
 
+## 5) Markdown Rendering and Export Flow
+
+1. Message bubbles render markdown content for both user and assistant messages.
+2. Rendering uses `MarkdownUI` to preserve multiline content and block elements
+   (including tables) with consistent output.
+3. User can trigger "Copy chat as Markdown" from the shell utility actions.
+4. App copies the current chat transcript to clipboard as plain text formatted markdown.
+5. Copy action is unavailable when no transcript content exists.
+
 ## UX Rules for MVP
 
 - Preserve transcript integrity over aggressive cleanup.

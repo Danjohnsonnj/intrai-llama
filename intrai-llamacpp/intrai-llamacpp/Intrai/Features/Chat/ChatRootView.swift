@@ -1,10 +1,12 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import UIKit
 
 public struct ChatRootView: View {
     @State private var viewModel: ChatViewModel
     @State private var isShowingModelImporter = false
     @State private var isShowingGlobalSettings = false
+    @State private var copyToastMessage: String?
 
     public init(viewModel: ChatViewModel) {
         _viewModel = State(wrappedValue: viewModel)
@@ -54,6 +56,22 @@ public struct ChatRootView: View {
                 .background(.thinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .shadow(color: Color.black.opacity(0.2), radius: 20, y: 8)
+            }
+
+            if let copyToastMessage {
+                VStack {
+                    Spacer()
+                    Text(copyToastMessage)
+                        .font(.callout.weight(.medium))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(.thinMaterial)
+                        .clipShape(Capsule())
+                        .shadow(color: Color.black.opacity(0.16), radius: 10, y: 4)
+                        .padding(.bottom, 22)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                .allowsHitTesting(false)
             }
         }
         .task {
@@ -135,6 +153,13 @@ public struct ChatRootView: View {
                     Task { await viewModel.createSession() }
                 }
                 .buttonStyle(.bordered)
+
+                Button("Copy chat as Markdown") {
+                    copyChatAsMarkdownToClipboard()
+                }
+                .buttonStyle(.bordered)
+                .disabled(viewModel.messages.isEmpty)
+
                 Spacer(minLength: 0)
             }
 
@@ -151,6 +176,24 @@ public struct ChatRootView: View {
         .padding(12)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.6))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func copyChatAsMarkdownToClipboard() {
+        guard let markdown = viewModel.markdownTranscriptForSelectedSession(), !markdown.isEmpty else {
+            return
+        }
+
+        UIPasteboard.general.string = markdown
+        withAnimation {
+            copyToastMessage = "Copied chat as Markdown"
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            withAnimation {
+                copyToastMessage = nil
+            }
+        }
     }
 
     private var modelStatusText: String {

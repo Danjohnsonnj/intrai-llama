@@ -1,4 +1,5 @@
 import SwiftUI
+import MarkdownUI
 
 struct ChatThreadView: View {
     @Bindable var viewModel: ChatViewModel
@@ -142,9 +143,7 @@ struct ChatThreadView: View {
             Text(isUser ? "You" : "Intrai")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            Text(message.content.isEmpty && message.status == .streaming ? "..." : message.content)
-                .font(.body)
-                .textSelection(.enabled)
+            markdownMessageText(message.content.isEmpty && message.status == .streaming ? "..." : message.content)
             if let statusLabel {
                 Text(statusLabel)
                     .font(.caption2.weight(.medium))
@@ -161,6 +160,19 @@ struct ChatThreadView: View {
                 : Color(uiColor: .secondarySystemBackground).opacity(0.9)
         )
         .clipShape(RoundedRectangle(cornerRadius: bubbleRadius))
+    }
+
+    @ViewBuilder
+    private func markdownMessageText(_ value: String) -> some View {
+        if value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Text(value)
+                .font(.body)
+                .textSelection(.enabled)
+        } else {
+            Markdown(value)
+                .font(.body)
+                .textSelection(.enabled)
+        }
     }
 
     private func statusPill(icon: String, title: String, tint: Color) -> some View {

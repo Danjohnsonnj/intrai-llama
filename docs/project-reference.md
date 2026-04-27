@@ -23,12 +23,13 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Persistent conversation history using SwiftData.
 - Assistant response streaming for active chat thread.
 - Manual `.gguf` model import and local model loading.
+- Markdown rendering in chat messages and markdown-formatted clipboard export.
 - Error and recovery flows for model load failure, generation failure, and cancellation.
 
 ### Out of Scope for MVP (Deferred)
 
 - Memory snapshot system.
-- Markdown render/export enhancements.
+- Rich markdown render/export enhancements beyond in-chat rendering and clipboard copy.
 - Context usage progress bar.
 - Siri/App Intents integration.
 - In-app model downloading UX.
@@ -70,6 +71,8 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Resume closed app (force quit or system closed) with previously selected model, if it is still accessible.
 - Model name should be present on the main screen.
 - Streaming generation loop emits chunks to the UI.
+- Chat message markdown rendering uses `MarkdownUI` to correctly handle multiline content
+  and table blocks in message bubbles.
 
 ### Context Assembly Pipeline
 

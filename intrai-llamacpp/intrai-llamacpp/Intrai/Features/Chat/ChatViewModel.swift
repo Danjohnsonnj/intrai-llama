@@ -306,6 +306,37 @@ public final class ChatViewModel {
         errorMessage = nil
     }
 
+    public func markdownTranscriptForSelectedSession() -> String? {
+        guard !messages.isEmpty else { return nil }
+
+        let fallbackTitle = "Chat Transcript"
+        let sessionTitle = sessions.first(where: { $0.id == selectedSessionID })?.title ?? fallbackTitle
+        let now = ISO8601DateFormatter().string(from: Date())
+
+        var sections: [String] = [
+            "# \(sessionTitle)",
+            "_Exported: \(now)_"
+        ]
+
+        for message in messages {
+            let roleHeading = message.role == .user ? "## User" : "## Assistant"
+            let body = message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? "_No content_"
+                : message.content
+
+            sections.append(roleHeading)
+            sections.append(body)
+
+            if message.status == .failed {
+                sections.append("> Status: failed")
+            } else if message.status == .cancelled {
+                sections.append("> Status: cancelled")
+            }
+        }
+
+        return sections.joined(separator: "\n\n")
+    }
+
     private func ensureSessionID() async throws -> UUID {
         if let selectedSessionID {
             return selectedSessionID
