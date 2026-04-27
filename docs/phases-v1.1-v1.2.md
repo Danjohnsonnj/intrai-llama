@@ -14,6 +14,10 @@ Add a guided in-app model acquisition flow while preserving local-first inferenc
 - Local file persistence in app-managed storage.
 - Model integrity checks before load.
 - Disk management UX (list/remove downloaded models).
+- Local transfer support without iCloud dependency:
+  - AirDrop model transfer from Mac -> iPhone.
+  - Open-in-place or import-from-Files flow for `.gguf`.
+  - Optional direct 'Open in Intrai' document type registration for smoother onboarding.
 
 ## Network Policy
 
@@ -24,6 +28,7 @@ Add a guided in-app model acquisition flow while preserving local-first inferenc
 
 - User can download, load, and remove a curated model end-to-end.
 - Interrupted download can be retried without app restart.
+- User can transfer a `.gguf` from another device via AirDrop and load it without iCloud.
 
 ---
 

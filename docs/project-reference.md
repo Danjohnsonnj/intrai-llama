@@ -96,7 +96,11 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 ## Known Pending Items
 
 - Wire real `llama.cpp` tokenization/sampling loop in `LlamaCppRuntime`.
+- Apply and validate real-device runtime defaults (`n_gpu_layers` for full Metal offload,
+  `n_ctx` baseline 4096/8192 policy) during on-device tuning pass.
 - Run full MVP smoke checklist on physical device.
 - Define and ship in-app download flow in v1.1.
+- Add AirDrop-based `.gguf` transfer workflow (no iCloud requirement) as part of
+  model acquisition UX.
 - Establish measurable performance targets in v1.2.
 - Expand device support matrix after v1 stability validation.
