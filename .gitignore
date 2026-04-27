@@ -9,5 +9,8 @@ DerivedData/
 # Swift Package Manager
 .build/
 
+# Build artifacts (regenerate with scripts/setup-llama-xcframework.sh)
+vendor/
+
 # Misc
 *.swp
