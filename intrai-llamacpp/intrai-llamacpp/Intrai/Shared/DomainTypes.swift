@@ -46,6 +46,11 @@ public enum MonitoringHealthState: String, Sendable {
     case contextLimited
 }
 
+public enum GenerationPath: String, Sendable {
+    case cold
+    case warm
+}
+
 public enum TokenBudgetPressure: String, Sendable {
     case normal
     case warning

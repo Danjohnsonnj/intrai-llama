@@ -3,6 +3,11 @@ import Foundation
 public actor LlamaCppInferenceEngine: InferenceEngine {
     private let bridge: LlamaCppBridge
     private var isGenerating = false
+    private var warmupCompletedForLoadedModel = false
+    private var hasCompletedDecodeSession = false
+
+    private let warmupPrompt = "Warmup run. Reply with OK."
+    private let warmupOptions = GenerationOptions(maxTokens: 12, temperature: 0)
 
     public init(bridge: LlamaCppBridge = LlamaCppRuntime()) {
         self.bridge = bridge
@@ -10,10 +15,15 @@ public actor LlamaCppInferenceEngine: InferenceEngine {
 
     public func loadModel(from modelURL: URL) async throws {
         try bridge.loadModel(path: modelURL.path)
+        warmupCompletedForLoadedModel = false
+        hasCompletedDecodeSession = false
+        await runWarmupIfNeeded()
     }
 
     public func unloadModel() async {
         bridge.unloadModel()
+        warmupCompletedForLoadedModel = false
+        hasCompletedDecodeSession = false
     }
 
     public func estimateTokenCount(for prompt: String) async throws -> Int {
@@ -22,6 +32,13 @@ public actor LlamaCppInferenceEngine: InferenceEngine {
 
     public func currentContextLimit() async -> Int {
         bridge.currentContextLimit()
+    }
+
+    public func generationPathForNextRequest() async -> GenerationPath {
+        if warmupCompletedForLoadedModel || hasCompletedDecodeSession {
+            return .warm
+        }
+        return .cold
     }
 
     public func generateStream(
@@ -36,6 +53,9 @@ public actor LlamaCppInferenceEngine: InferenceEngine {
                 }
 
                 isGenerating = true
+                defer {
+                    isGenerating = false
+                }
 
                 do {
                     try bridge.startGeneration(prompt: prompt, options: options)
@@ -56,12 +76,11 @@ public actor LlamaCppInferenceEngine: InferenceEngine {
                         }
                     }
 
+                    hasCompletedDecodeSession = true
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
                 }
-
-                isGenerating = false
             }
 
             continuation.onTermination = { _ in
@@ -72,5 +91,22 @@ public actor LlamaCppInferenceEngine: InferenceEngine {
 
     public func cancelGeneration() async {
         bridge.cancelGeneration()
+    }
+
+    private func runWarmupIfNeeded() async {
+        guard !warmupCompletedForLoadedModel else { return }
+        do {
+            try bridge.startGeneration(prompt: warmupPrompt, options: warmupOptions)
+            while let _ = try bridge.nextTokenChunk() {
+                if Task.isCancelled {
+                    bridge.cancelGeneration()
+                    return
+                }
+            }
+            warmupCompletedForLoadedModel = true
+        } catch {
+            bridge.cancelGeneration()
+            print("[IntraiWarmup] warmup failed: \(error.localizedDescription)")
+        }
     }
 }

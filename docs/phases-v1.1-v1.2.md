@@ -44,6 +44,8 @@ Define measurable generation performance targets for recommended models on targe
 - Standardized prompt fixture and deterministic test settings.
 - Throughput metric capture (tokens/sec) and latency stats.
 - Recommended default generation parameters for target devices.
+- Cold/warm run tagging so first-run overhead does not bias warm thresholds.
+- Latency breakdown capture (`preflightDurationMs`, `promptAssemblyDurationMs`, `tokenEvaluationDurationMs`, `engineQueueDurationMs`, `decodeToFirstChunkMs`).
 
 ## Suggested Gate (To Finalize)
 
@@ -54,3 +56,14 @@ Define measurable generation performance targets for recommended models on targe
 
 - Baseline target values documented and reproducible.
 - CI/manual benchmark process can detect regressions.
+
+### Baseline recording format
+
+| Prompt class | Run class | TTFT p50 (ms) | TTFT p90 (ms) | Sustained chars/sec | Regression verdict |
+| --- | --- | --- | --- | --- | --- |
+| short | cold |  |  |  |  |
+| short | warm |  |  |  |  |
+| medium | cold |  |  |  |  |
+| medium | warm |  |  |  |  |
+| long | cold |  |  |  |  |
+| long | warm |  |  |  |  |

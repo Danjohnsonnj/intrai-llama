@@ -5,6 +5,7 @@ nonisolated public protocol InferenceEngine: Sendable {
     func unloadModel() async
     func estimateTokenCount(for prompt: String) async throws -> Int
     func currentContextLimit() async -> Int
+    func generationPathForNextRequest() async -> GenerationPath
     func generateStream(
         prompt: String,
         options: GenerationOptions

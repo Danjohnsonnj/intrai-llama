@@ -22,6 +22,7 @@ Use this checklist during manual validation runs.
 - [ ] Re-importing the same `.gguf` filename refreshes the stored copy and loads
 - [x] Sending prompt creates user + assistant placeholder entries
 - [ ] Context preflight shows `Context near limit` or `History compacted to preserve response quality` when applicable
+- [ ] Long resumed chats with recap prompts (for example, `Summarize this chat`, `Where were we?`) compact history and stay stable
 - [x] Assistant message streams incrementally
 - [ ] Cancel generation marks assistant message as `cancelled`
 - [ ] Generation failure marks assistant message as `failed`
@@ -38,9 +39,26 @@ Use this checklist during manual validation runs.
   - [ ] `inputTokenEstimate`
   - [ ] `contextUtilization`
   - [ ] `compactionApplied`
+  - [ ] `generationPath`
+  - [ ] `preflightDurationMs`
+  - [ ] `promptAssemblyDurationMs`
+  - [ ] `tokenEvaluationDurationMs`
+  - [ ] `engineQueueDurationMs`
+  - [ ] `decodeToFirstChunkMs`
+  - [ ] `forcedRecapCompactionApplied`
+  - [ ] `recapIntentMatched`
+  - [ ] `preflightHistoryTruncatedForSafety`
   - [ ] `wasCancelled`
   - [ ] `generationFailed`
   - [ ] `endReason`
+
+## Performance Baseline Runbook (v1.2 prep)
+
+- [ ] Capture device conditions (device model, iOS version, Low Power Mode, thermal state).
+- [ ] Use fixed prompt fixture: short / medium / long.
+- [ ] Run 5 generations per prompt class and tag each as `cold` or `warm`.
+- [ ] Record TTFT p50/p90 and sustained chars/sec for warm runs.
+- [ ] Confirm one repeated run produces comparable values (no large unexplained drift).
 
 ## Exit Criteria
 

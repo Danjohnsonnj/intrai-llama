@@ -34,6 +34,15 @@ Collect for diagnostics only:
 - [ ] `inputTokenEstimate`
 - [ ] `contextUtilization`
 - [ ] `compactionApplied`
+- [ ] `generationPath` (`cold`, `warm`)
+- [ ] `preflightDurationMs`
+- [ ] `promptAssemblyDurationMs`
+- [ ] `tokenEvaluationDurationMs`
+- [ ] `engineQueueDurationMs`
+- [ ] `decodeToFirstChunkMs`
+- [ ] `forcedRecapCompactionApplied`
+- [ ] `recapIntentMatched`
+- [ ] `preflightHistoryTruncatedForSafety`
 - [ ] `wasCancelled`
 - [ ] `generationFailed`
 - [ ] `endReason` (`completed`, `cancelled`, `failed`, `contextLimited`)
@@ -53,3 +62,22 @@ Metrics should be local development diagnostics, not telemetry uploads in v1.
 - All smoke checklist items pass on at least one physical target device.
 - No critical crashers in model import, generation, or session persistence flows.
 - Known issues are documented with severity and workaround.
+
+## v1.2 Benchmark Protocol (Manual Baseline)
+
+- Reference profile: iPhone 16 Pro+, iOS 26.4+, Low Power Mode off, no active thermal warning.
+- Model fixture: fixed model filename and quantization per run sheet.
+- Prompt fixture: short, medium, and long prompts held constant across runs.
+- Run policy: 5 runs per prompt length; record cold separately from warm.
+- Warm baseline policy: classify warm-only from run 2 onward if run 1 is cold.
+
+### Reporting template
+
+| Prompt class | Run class | TTFT p50 (ms) | TTFT p90 (ms) | Sustained chars/sec | Notes |
+| --- | --- | --- | --- | --- | --- |
+| short | cold |  |  |  |  |
+| short | warm |  |  |  |  |
+| medium | cold |  |  |  |  |
+| medium | warm |  |  |  |  |
+| long | cold |  |  |  |  |
+| long | warm |  |  |  |  |

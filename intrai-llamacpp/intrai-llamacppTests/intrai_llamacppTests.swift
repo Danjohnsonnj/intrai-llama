@@ -60,6 +60,15 @@ struct intrai_llamacppTests {
             inputTokenEstimate: 880,
             contextUtilization: 0.91,
             compactionApplied: true,
+            generationPath: .warm,
+            preflightDurationMs: 15,
+            promptAssemblyDurationMs: 4,
+            tokenEvaluationDurationMs: 9,
+            engineQueueDurationMs: 60,
+            decodeToFirstChunkMs: 60,
+            forcedRecapCompactionApplied: false,
+            recapIntentMatched: false,
+            preflightHistoryTruncatedForSafety: false,
             wasCancelled: false,
             generationFailed: false,
             endReason: .completed
@@ -67,6 +76,7 @@ struct intrai_llamacppTests {
 
         #expect(metrics.endReason == GenerationEndReason.completed)
         #expect(metrics.compactionApplied)
+        #expect(metrics.generationPath == .warm)
     }
 
     @Test func intraiErrorContextLimitMessageIsExposed() async throws {

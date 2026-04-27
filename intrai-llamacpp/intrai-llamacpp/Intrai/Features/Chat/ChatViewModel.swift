@@ -45,9 +45,40 @@ public final class ChatViewModel {
     private var activeGenerationInputTokens: Int?
     private var activeContextUtilization: Double?
     private var activeCompactionApplied = false
+    private var activeGenerationPath: GenerationPath = .cold
+    private var activePreflightDurationMs: Double?
+    private var activePromptAssemblyDurationMs: Double?
+    private var activeTokenEvaluationDurationMs: Double?
+    private var activeEngineQueueDurationMs: Double?
+    private var activeDecodeToFirstChunkMs: Double?
+    private var activeForcedRecapCompactionApplied = false
+    private var activeRecapIntentMatched = false
+    private var activePreflightHistoryTruncatedForSafety = false
     private var rollingHistorySummaries: [UUID: String] = [:]
     private let recentMetricsWindowSize = 10
     private let pinnedRecentMessageCount = 12
+    private let streamingFlushIntervalMs: Double = 80
+    private let streamingFlushChunkThreshold = 48
+    private let maxPreflightPromptChars = 64_000
+    private let maxSummaryChars = 8_000
+    private let maxHistoryCharsInPrompt = 28_000
+    private let maxSingleMessageCharsInPrompt = 1_200
+    private let maxCompactionIterations = 8
+    private let streamingReloadIntervalMs: Double = 300
+    private let forcedRecapTailMessageCount = 8
+    private let forcedRecapPromptChars = 18_000
+    private let forcedRecapMessageCountThreshold = 160
+    private let forcedRecapHistoryCharsThreshold = 36_000
+    private let recapIntentPhrases = [
+        "summarize this chat",
+        "what were we talking about",
+        "where were we",
+        "recap",
+        "catch me up",
+        "summarize our conversation"
+    ]
+    private let adaptiveSlowSampleWindow = 8
+    private let adaptiveSlowMinimumSamples = 3
 
     public init(
         sessionRepository: SessionRepository,
@@ -207,6 +238,10 @@ public final class ChatViewModel {
     }
 
     public func sendPrompt(_ text: String) async {
+        guard !isGenerating else {
+            setError("Generation already in progress. Cancel before sending a new message.")
+            return
+        }
         guard modelLoaded else {
             setError("Load a model before sending messages.")
             return
@@ -219,10 +254,20 @@ public final class ChatViewModel {
                 await loadMessages(for: sessionID)
             }
 
+            let preflightStartedAt = Date()
             let preflight = try await preparePromptWithinBudget(sessionID: sessionID, userInput: text)
+            activePreflightDurationMs = Date().timeIntervalSince(preflightStartedAt) * 1000
             tokenBudgetResult = preflight.budget
             contextNotice = preflight.notice
             contextNoticeDetails = preflight.noticeDetails
+            if messages.count > 400 {
+                let largeThreadNote = "Large chat detected. Older history may be aggressively compacted for memory safety."
+                if let contextNoticeDetails, !contextNoticeDetails.isEmpty {
+                    self.contextNoticeDetails = contextNoticeDetails + " " + largeThreadNote
+                } else {
+                    self.contextNoticeDetails = largeThreadNote
+                }
+            }
             isShowingContextNoticeDetails = false
 
             let options = GenerationOptions(
@@ -237,6 +282,14 @@ public final class ChatViewModel {
             activeGenerationInputTokens = preflight.budget.estimatedInputTokens
             activeContextUtilization = preflight.budget.utilization
             activeCompactionApplied = preflight.compactionApplied
+            activePromptAssemblyDurationMs = preflight.promptAssemblyDurationMs
+            activeTokenEvaluationDurationMs = preflight.tokenEvaluationDurationMs
+            activeForcedRecapCompactionApplied = preflight.forcedRecapCompactionApplied
+            activeRecapIntentMatched = preflight.recapIntentMatched
+            activePreflightHistoryTruncatedForSafety = preflight.preflightHistoryTruncatedForSafety
+            activeGenerationPath = await inferenceEngine.generationPathForNextRequest()
+            activeEngineQueueDurationMs = nil
+            activeDecodeToFirstChunkMs = nil
             contextFidelityState = fidelityState(for: preflight.budget, compactionApplied: preflight.compactionApplied)
 
             await loadMessages(for: sessionID)
@@ -260,8 +313,12 @@ public final class ChatViewModel {
                 var streamedCharacterCount = 0
                 var wasCancelled = false
                 var generationFailed = false
+                var pendingAssistantBuffer = ""
+                var lastBufferFlushAt = startedAt
+                var lastMessagesReloadAt = startedAt
 
                 do {
+                    let decodeRequestAt = Date()
                     for try await chunk in await self.inferenceEngine.generateStream(
                         prompt: preflight.prompt,
                         options: options
@@ -269,31 +326,63 @@ public final class ChatViewModel {
                         guard let assistantID = self.activeAssistantMessageID else {
                             continue
                         }
-                        try await self.messageRepository.appendAssistantChunk(messageID: assistantID, chunk: chunk)
+                        pendingAssistantBuffer += chunk
                         streamedCharacterCount += chunk.count
                         if firstTokenAt == nil {
-                            firstTokenAt = Date()
+                            let firstChunkAt = Date()
+                            firstTokenAt = firstChunkAt
                             self.generationPhase = .streaming
+                            self.activeEngineQueueDurationMs = firstChunkAt.timeIntervalSince(decodeRequestAt) * 1000
+                            self.activeDecodeToFirstChunkMs = firstChunkAt.timeIntervalSince(decodeRequestAt) * 1000
                         }
                         let elapsedMs = max(1, Date().timeIntervalSince(startedAt) * 1000)
+                        let shouldFlush = pendingAssistantBuffer.count >= self.streamingFlushChunkThreshold ||
+                            (elapsedMs - (lastBufferFlushAt.timeIntervalSince(startedAt) * 1000)) >= self.streamingFlushIntervalMs
+                        if shouldFlush, !pendingAssistantBuffer.isEmpty {
+                            try await self.messageRepository.appendAssistantChunk(
+                                messageID: assistantID,
+                                chunk: pendingAssistantBuffer
+                            )
+                            pendingAssistantBuffer = ""
+                            lastBufferFlushAt = Date()
+                            let reloadElapsedMs = Date().timeIntervalSince(lastMessagesReloadAt) * 1000
+                            if reloadElapsedMs >= self.streamingReloadIntervalMs, let session = self.selectedSessionID {
+                                await self.loadMessages(for: session)
+                                lastMessagesReloadAt = Date()
+                            }
+                        }
                         self.liveGenerationSnapshot = GenerationMonitoringSnapshot(
                             phase: self.generationPhase,
                             elapsedMs: elapsedMs,
                             streamedCharacterCount: streamedCharacterCount,
                             approxCharsPerSecond: Double(streamedCharacterCount) / (elapsedMs / 1000)
                         )
-                        if let session = self.selectedSessionID {
-                            await self.loadMessages(for: session)
-                        }
                     }
 
                     if let assistantID = self.activeAssistantMessageID {
+                        if !pendingAssistantBuffer.isEmpty {
+                            try await self.messageRepository.appendAssistantChunk(
+                                messageID: assistantID,
+                                chunk: pendingAssistantBuffer
+                            )
+                            pendingAssistantBuffer = ""
+                        }
                         try await self.messageRepository.markMessageComplete(messageID: assistantID)
                     }
                 } catch {
                     generationFailed = true
                     if Task.isCancelled {
                         wasCancelled = true
+                    }
+                    if let assistantID = self.activeAssistantMessageID, !pendingAssistantBuffer.isEmpty {
+                        do {
+                            try await self.messageRepository.appendAssistantChunk(
+                                messageID: assistantID,
+                                chunk: pendingAssistantBuffer
+                            )
+                        } catch {
+                            // Keep the original generation error as the primary failure signal.
+                        }
                     }
                     await self.handleGenerationFailure(prompt: text, error: error)
                 }
@@ -331,6 +420,15 @@ public final class ChatViewModel {
                 self.activeGenerationInputTokens = nil
                 self.activeContextUtilization = nil
                 self.activeCompactionApplied = false
+                self.activePreflightDurationMs = nil
+                self.activePromptAssemblyDurationMs = nil
+                self.activeTokenEvaluationDurationMs = nil
+                self.activeEngineQueueDurationMs = nil
+                self.activeDecodeToFirstChunkMs = nil
+                self.activeForcedRecapCompactionApplied = false
+                self.activeRecapIntentMatched = false
+                self.activePreflightHistoryTruncatedForSafety = false
+                self.activeGenerationPath = .cold
 
                 if let session = self.selectedSessionID {
                     await self.loadMessages(for: session)
@@ -344,6 +442,9 @@ public final class ChatViewModel {
     }
 
     public func cancelGeneration() async {
+        guard isGenerating else {
+            return
+        }
         cancellationRequested = true
         generationTask?.cancel()
         await inferenceEngine.cancelGeneration()
@@ -362,6 +463,15 @@ public final class ChatViewModel {
         activeGenerationInputTokens = nil
         activeContextUtilization = nil
         activeCompactionApplied = false
+        activePreflightDurationMs = nil
+        activePromptAssemblyDurationMs = nil
+        activeTokenEvaluationDurationMs = nil
+        activeEngineQueueDurationMs = nil
+        activeDecodeToFirstChunkMs = nil
+        activeForcedRecapCompactionApplied = false
+        activeRecapIntentMatched = false
+        activePreflightHistoryTruncatedForSafety = false
+        activeGenerationPath = .cold
         if let sessionID = selectedSessionID {
             await loadMessages(for: sessionID)
         }
@@ -419,7 +529,18 @@ public final class ChatViewModel {
     private func preparePromptWithinBudget(
         sessionID: UUID,
         userInput: String
-    ) async throws -> (prompt: String, budget: TokenBudgetResult, compactionApplied: Bool, notice: String?, noticeDetails: String?) {
+    ) async throws -> (
+        prompt: String,
+        budget: TokenBudgetResult,
+        compactionApplied: Bool,
+        notice: String?,
+        noticeDetails: String?,
+        promptAssemblyDurationMs: Double,
+        tokenEvaluationDurationMs: Double,
+        forcedRecapCompactionApplied: Bool,
+        recapIntentMatched: Bool,
+        preflightHistoryTruncatedForSafety: Bool
+    ) {
         let contextWindow = await inferenceEngine.currentContextLimit()
         let policy = tokenPolicy(for: loadedModelName, contextWindow: contextWindow)
 
@@ -427,14 +548,89 @@ public final class ChatViewModel {
         var candidateMessages = messages.filter { $0.sessionID == sessionID && $0.status != .pending }
         let pinnedRecentCount = pinnedRecentMessageCount
         var compactionApplied = false
+        var compactionIteration = 0
+        var promptAssemblyDurationMs: Double = 0
+        var tokenEvaluationDurationMs: Double = 0
+        let recapIntentMatched = matchesRecapIntent(userInput)
+        let forcedRecapCompactionApplied = shouldForceRecapCompaction(
+            userInput: userInput,
+            candidateMessages: candidateMessages
+        )
+        var preflightHistoryTruncatedForSafety = false
+
+        if forcedRecapCompactionApplied {
+            let promptAssemblyStart = Date()
+            let recapPromptResult = composeRecapSafetyPrompt(
+                summary: summary,
+                history: candidateMessages,
+                userInput: userInput
+            )
+            let prompt = recapPromptResult.prompt
+            preflightHistoryTruncatedForSafety = recapPromptResult.historyTruncatedForSafety
+            promptAssemblyDurationMs += Date().timeIntervalSince(promptAssemblyStart) * 1000
+            if prompt.count > maxPreflightPromptChars {
+                throw IntraiError.contextLimitReached(
+                    reason: "Context still too large for recap. Start a new chat or summarize the latest turns."
+                )
+            }
+            let tokenEvalStart = Date()
+            let estimatedTokens = try await inferenceEngine.estimateTokenCount(for: prompt)
+            tokenEvaluationDurationMs += Date().timeIntervalSince(tokenEvalStart) * 1000
+            let budget = policy.evaluate(contextWindow: contextWindow, estimatedInputTokens: estimatedTokens)
+            if budget.estimatedInputTokens > budget.inputBudget {
+                throw IntraiError.contextLimitReached(
+                    reason: "Context still too large for recap. Start a new chat or summarize the latest turns."
+                )
+            }
+            return (
+                prompt: prompt,
+                budget: budget,
+                compactionApplied: true,
+                notice: "History compacted for recap stability",
+                noticeDetails: "Older turns were aggressively compacted to prevent memory pressure while generating a recap.",
+                promptAssemblyDurationMs: promptAssemblyDurationMs,
+                tokenEvaluationDurationMs: tokenEvaluationDurationMs,
+                forcedRecapCompactionApplied: true,
+                recapIntentMatched: recapIntentMatched,
+                preflightHistoryTruncatedForSafety: preflightHistoryTruncatedForSafety
+            )
+        }
 
         while true {
+            compactionIteration += 1
+            if compactionIteration > maxCompactionIterations {
+                throw IntraiError.contextLimitReached(
+                    reason: "Context full after compaction attempts. Start a new chat or shorten your message."
+                )
+            }
+            let promptAssemblyStart = Date()
             let prompt = composePrompt(
                 summary: summary,
                 history: candidateMessages,
                 userInput: userInput
             )
+            promptAssemblyDurationMs += Date().timeIntervalSince(promptAssemblyStart) * 1000
+            if prompt.count > maxPreflightPromptChars {
+                let compactableCount = max(0, candidateMessages.count - pinnedRecentCount)
+                guard compactableCount > 1 else {
+                    throw IntraiError.contextLimitReached(
+                        reason: "Context full after compaction attempts. Start a new chat or shorten your message."
+                    )
+                }
+                let chunkCount = max(4, compactableCount / 2)
+                let toCompact = Array(candidateMessages.prefix(chunkCount))
+                let compactedSummary = summarize(messages: toCompact)
+                summary = mergedSummary(existing: summary, addition: compactedSummary)
+                if let summary {
+                    self.rollingHistorySummaries[sessionID] = String(summary.suffix(maxSummaryChars))
+                }
+                candidateMessages.removeFirst(chunkCount)
+                compactionApplied = true
+                continue
+            }
+            let tokenEvalStart = Date()
             let estimatedTokens = try await inferenceEngine.estimateTokenCount(for: prompt)
+            tokenEvaluationDurationMs += Date().timeIntervalSince(tokenEvalStart) * 1000
             let budget = policy.evaluate(contextWindow: contextWindow, estimatedInputTokens: estimatedTokens)
 
             if budget.estimatedInputTokens <= budget.inputBudget {
@@ -446,7 +642,12 @@ public final class ChatViewModel {
                     budget: budget,
                     compactionApplied: compactionApplied,
                     notice: contextNoticeText(for: budget, compactionApplied: compactionApplied),
-                    noticeDetails: contextNoticeDetailText(for: budget, compactionApplied: compactionApplied)
+                    noticeDetails: contextNoticeDetailText(for: budget, compactionApplied: compactionApplied),
+                    promptAssemblyDurationMs: promptAssemblyDurationMs,
+                    tokenEvaluationDurationMs: tokenEvaluationDurationMs,
+                    forcedRecapCompactionApplied: false,
+                    recapIntentMatched: recapIntentMatched,
+                    preflightHistoryTruncatedForSafety: preflightHistoryTruncatedForSafety
                 )
             }
 
@@ -457,10 +658,15 @@ public final class ChatViewModel {
                 )
             }
 
-            let chunkCount = max(2, compactableCount / 3)
+            let chunkCount = prompt.count > 48_000
+                ? max(4, compactableCount / 2)
+                : max(2, compactableCount / 3)
             let toCompact = Array(candidateMessages.prefix(chunkCount))
             let compactedSummary = summarize(messages: toCompact)
             summary = mergedSummary(existing: summary, addition: compactedSummary)
+            if let summary {
+                self.rollingHistorySummaries[sessionID] = String(summary.suffix(maxSummaryChars))
+            }
             candidateMessages.removeFirst(chunkCount)
             compactionApplied = true
         }
@@ -480,20 +686,99 @@ public final class ChatViewModel {
         return TokenBudgetPolicy()
     }
 
+    private func normalizedPrompt(_ text: String) -> String {
+        text
+            .lowercased()
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func matchesRecapIntent(_ userInput: String) -> Bool {
+        let normalized = normalizedPrompt(userInput)
+        return recapIntentPhrases.contains(where: { normalized.contains($0) })
+    }
+
+    private func shouldForceRecapCompaction(userInput: String, candidateMessages: [ChatMessageRecord]) -> Bool {
+        if matchesRecapIntent(userInput) {
+            return true
+        }
+        if candidateMessages.count >= forcedRecapMessageCountThreshold {
+            return true
+        }
+        let aggregateChars = candidateMessages.reduce(0) { partial, message in
+            partial + message.content.count
+        }
+        return aggregateChars >= forcedRecapHistoryCharsThreshold
+    }
+
+    private func composeRecapSafetyPrompt(
+        summary: String?,
+        history: [ChatMessageRecord],
+        userInput: String
+    ) -> (prompt: String, historyTruncatedForSafety: Bool) {
+        let boundedSummary = summary.map { String($0.suffix(maxSummaryChars)) }
+        let tailMessages = Array(history.suffix(forcedRecapTailMessageCount))
+        var sections: [String] = ["You are Intrai, a concise local assistant."]
+        if let boundedSummary, !boundedSummary.isEmpty {
+            sections.append("Conversation summary:\n\(boundedSummary)")
+        }
+        if !tailMessages.isEmpty {
+            var lines = ["[Earlier conversation omitted for recap stability]"]
+            lines.append(contentsOf: tailMessages.map { message in
+                let role = message.role == .user ? "User" : "Assistant"
+                let compact = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                let clipped = compact.count > maxSingleMessageCharsInPrompt
+                    ? String(compact.prefix(maxSingleMessageCharsInPrompt))
+                    : compact
+                return "\(role): \(clipped)"
+            })
+            sections.append("Recent conversation:\n\(lines.joined(separator: "\n"))")
+        }
+        sections.append("User: \(userInput)")
+        sections.append("Assistant:")
+        let prompt = sections.joined(separator: "\n\n")
+        let boundedPrompt = prompt.count > forcedRecapPromptChars
+            ? String(prompt.suffix(forcedRecapPromptChars))
+            : prompt
+        let truncated = tailMessages.count < history.count || boundedPrompt.count < prompt.count
+        return (boundedPrompt, truncated)
+    }
+
     private func composePrompt(summary: String?, history: [ChatMessageRecord], userInput: String) -> String {
         var sections: [String] = []
 
         sections.append("You are Intrai, a concise local assistant.")
         if let summary, !summary.isEmpty {
-            sections.append("Conversation summary:\n\(summary)")
+            sections.append("Conversation summary:\n\(String(summary.suffix(maxSummaryChars)))")
         }
 
         if !history.isEmpty {
-            let renderedHistory = history.map { message in
-                let role = message.role == .user ? "User" : "Assistant"
-                return "\(role): \(message.content)"
-            }.joined(separator: "\n")
-            sections.append("Recent conversation:\n\(renderedHistory)")
+            var selectedHistory: [(role: MessageRole, content: String)] = []
+            var historyChars = 0
+            for message in history.reversed() {
+                let trimmed = message.content.trimmingCharacters(in: .whitespacesAndNewlines)
+                let clipped = trimmed.count > maxSingleMessageCharsInPrompt
+                    ? String(trimmed.prefix(maxSingleMessageCharsInPrompt))
+                    : trimmed
+                let entryLength = clipped.count + 16
+                if historyChars + entryLength > maxHistoryCharsInPrompt {
+                    break
+                }
+                historyChars += entryLength
+                selectedHistory.append((role: message.role, content: clipped))
+            }
+            selectedHistory.reverse()
+
+            var renderedHistoryLines: [String] = []
+            if selectedHistory.count < history.count {
+                renderedHistoryLines.append("[Earlier conversation omitted for memory safety]")
+            }
+            let renderedHistory = selectedHistory.map { entry in
+                let role = entry.role == .user ? "User" : "Assistant"
+                return "\(role): \(entry.content)"
+            }
+            renderedHistoryLines.append(contentsOf: renderedHistory)
+            sections.append("Recent conversation:\n\(renderedHistoryLines.joined(separator: "\n"))")
         }
 
         sections.append("User: \(userInput)")
@@ -507,15 +792,20 @@ public final class ChatViewModel {
             let compact = message.content
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .replacingOccurrences(of: "\n", with: " ")
-            let clipped = compact.count > 220 ? String(compact.prefix(220)) + "…" : compact
+            let clipped = compact.count > 160 ? String(compact.prefix(160)) + "…" : compact
             return "- \(role): \(clipped)"
         }
-        return lines.joined(separator: "\n")
+        return String(lines.joined(separator: "\n").suffix(maxSummaryChars / 2))
     }
 
     private func mergedSummary(existing: String?, addition: String) -> String {
-        guard let existing, !existing.isEmpty else { return addition }
-        return existing + "\n" + addition
+        let merged: String
+        if let existing, !existing.isEmpty {
+            merged = existing + "\n" + addition
+        } else {
+            merged = addition
+        }
+        return String(merged.suffix(maxSummaryChars))
     }
 
     private func contextNoticeText(for budget: TokenBudgetResult, compactionApplied: Bool) -> String? {
@@ -580,6 +870,11 @@ public final class ChatViewModel {
             }
             return
         }
+        let loweredMessage = error.localizedDescription.lowercased()
+        if loweredMessage.contains("memory") || loweredMessage.contains("terminated") {
+            self.setError("Generation stopped due to memory pressure. Try summarizing the last 10 turns or start a new chat.")
+            return
+        }
         self.setError("Generation failed: \(error.localizedDescription)")
     }
 
@@ -613,6 +908,15 @@ public final class ChatViewModel {
             inputTokenEstimate: activeGenerationInputTokens,
             contextUtilization: activeContextUtilization,
             compactionApplied: activeCompactionApplied,
+            generationPath: activeGenerationPath,
+            preflightDurationMs: activePreflightDurationMs,
+            promptAssemblyDurationMs: activePromptAssemblyDurationMs,
+            tokenEvaluationDurationMs: activeTokenEvaluationDurationMs,
+            engineQueueDurationMs: activeEngineQueueDurationMs,
+            decodeToFirstChunkMs: activeDecodeToFirstChunkMs,
+            forcedRecapCompactionApplied: activeForcedRecapCompactionApplied,
+            recapIntentMatched: activeRecapIntentMatched,
+            preflightHistoryTruncatedForSafety: activePreflightHistoryTruncatedForSafety,
             wasCancelled: wasCancelled,
             generationFailed: generationFailed,
             endReason: endReason
@@ -669,9 +973,26 @@ public final class ChatViewModel {
         if metrics.compactionApplied {
             return .compacted
         }
-        if let ttft = metrics.timeToFirstTokenMs, ttft > 2500 {
+        if let ttft = metrics.timeToFirstTokenMs, ttft > slowThresholdMs(for: metrics) {
             return .slow
         }
         return .healthy
+    }
+
+    private func slowThresholdMs(for metrics: GenerationMetrics) -> Double {
+        let fallbackThresholdMs = metrics.generationPath == .cold ? 3500.0 : 2500.0
+        let warmCompletions = recentGenerationMetrics
+            .filter { $0.endReason == .completed && $0.generationPath == .warm }
+            .suffix(adaptiveSlowSampleWindow)
+        guard warmCompletions.count >= adaptiveSlowMinimumSamples else {
+            return fallbackThresholdMs
+        }
+        let warmTTFTSamples = warmCompletions.compactMap(\.timeToFirstTokenMs).sorted()
+        guard !warmTTFTSamples.isEmpty else {
+            return fallbackThresholdMs
+        }
+        let p90Index = Int(Double(warmTTFTSamples.count - 1) * 0.9)
+        let p90 = warmTTFTSamples[p90Index]
+        return max(fallbackThresholdMs, p90 * 1.15)
     }
 }

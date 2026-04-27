@@ -17,6 +17,15 @@ public struct GenerationMetrics: Sendable {
     public let inputTokenEstimate: Int?
     public let contextUtilization: Double?
     public let compactionApplied: Bool
+    public let generationPath: GenerationPath
+    public let preflightDurationMs: Double?
+    public let promptAssemblyDurationMs: Double?
+    public let tokenEvaluationDurationMs: Double?
+    public let engineQueueDurationMs: Double?
+    public let decodeToFirstChunkMs: Double?
+    public let forcedRecapCompactionApplied: Bool
+    public let recapIntentMatched: Bool
+    public let preflightHistoryTruncatedForSafety: Bool
     public let wasCancelled: Bool
     public let generationFailed: Bool
     public let endReason: GenerationEndReason
@@ -31,6 +40,15 @@ public struct GenerationMetrics: Sendable {
         inputTokenEstimate: Int?,
         contextUtilization: Double?,
         compactionApplied: Bool,
+        generationPath: GenerationPath,
+        preflightDurationMs: Double?,
+        promptAssemblyDurationMs: Double?,
+        tokenEvaluationDurationMs: Double?,
+        engineQueueDurationMs: Double?,
+        decodeToFirstChunkMs: Double?,
+        forcedRecapCompactionApplied: Bool,
+        recapIntentMatched: Bool,
+        preflightHistoryTruncatedForSafety: Bool,
         wasCancelled: Bool,
         generationFailed: Bool,
         endReason: GenerationEndReason
@@ -44,6 +62,15 @@ public struct GenerationMetrics: Sendable {
         self.inputTokenEstimate = inputTokenEstimate
         self.contextUtilization = contextUtilization
         self.compactionApplied = compactionApplied
+        self.generationPath = generationPath
+        self.preflightDurationMs = preflightDurationMs
+        self.promptAssemblyDurationMs = promptAssemblyDurationMs
+        self.tokenEvaluationDurationMs = tokenEvaluationDurationMs
+        self.engineQueueDurationMs = engineQueueDurationMs
+        self.decodeToFirstChunkMs = decodeToFirstChunkMs
+        self.forcedRecapCompactionApplied = forcedRecapCompactionApplied
+        self.recapIntentMatched = recapIntentMatched
+        self.preflightHistoryTruncatedForSafety = preflightHistoryTruncatedForSafety
         self.wasCancelled = wasCancelled
         self.generationFailed = generationFailed
         self.endReason = endReason
@@ -76,6 +103,15 @@ nonisolated public struct ConsoleMetricsRecorder: MetricsRecorder {
             chars=\(metrics.streamedCharacterCount) \
             inputTokens=\(metrics.inputTokenEstimate.map(String.init) ?? "nil") \
             contextUtil=\(metrics.contextUtilization.map { String(format: "%.3f", $0) } ?? "nil") \
+            path=\(metrics.generationPath.rawValue) \
+            preflightMs=\(metrics.preflightDurationMs.map { String(format: "%.2f", $0) } ?? "nil") \
+            assembleMs=\(metrics.promptAssemblyDurationMs.map { String(format: "%.2f", $0) } ?? "nil") \
+            tokenEvalMs=\(metrics.tokenEvaluationDurationMs.map { String(format: "%.2f", $0) } ?? "nil") \
+            engineQueueMs=\(metrics.engineQueueDurationMs.map { String(format: "%.2f", $0) } ?? "nil") \
+            decodeToFirstMs=\(metrics.decodeToFirstChunkMs.map { String(format: "%.2f", $0) } ?? "nil") \
+            forcedRecap=\(metrics.forcedRecapCompactionApplied) \
+            recapIntent=\(metrics.recapIntentMatched) \
+            historyTruncated=\(metrics.preflightHistoryTruncatedForSafety) \
             compacted=\(metrics.compactionApplied) cancelled=\(metrics.wasCancelled) failed=\(metrics.generationFailed) \
             endReason=\(metrics.endReason.rawValue)
             """
