@@ -33,7 +33,11 @@ public struct ChatRootView: View {
                     }
                 }
             } detail: {
-                ChatThreadView(viewModel: viewModel)
+                ChatThreadView(
+                    viewModel: viewModel,
+                    canCopyTranscript: !viewModel.messages.isEmpty,
+                    onCopyTranscript: copyChatAsMarkdownToClipboard
+                )
             }
 
             if viewModel.isRestoringModel || viewModel.isLoadingModel {
@@ -154,12 +158,6 @@ public struct ChatRootView: View {
                 }
                 .buttonStyle(.bordered)
 
-                Button("Copy chat as Markdown") {
-                    copyChatAsMarkdownToClipboard()
-                }
-                .buttonStyle(.bordered)
-                .disabled(viewModel.messages.isEmpty)
-
                 Spacer(minLength: 0)
             }
 
@@ -198,13 +196,13 @@ public struct ChatRootView: View {
 
     private var modelStatusText: String {
         if viewModel.isLoadingModel {
-            return "Loading selected model..."
+            return "Loading model"
         }
         if viewModel.isRestoringModel {
-            return "Restoring previous model..."
+            return "Restoring model"
         }
-        if let loadedModelName = viewModel.loadedModelName {
-            return "Ready: \(loadedModelName)"
+        if viewModel.loadedModelName != nil {
+            return "Model ready"
         }
         return "No model loaded"
     }

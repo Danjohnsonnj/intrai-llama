@@ -73,6 +73,8 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Streaming generation loop emits chunks to the UI.
 - Chat message markdown rendering uses `MarkdownUI` to correctly handle multiline content
   and table blocks in message bubbles.
+- Header model status uses concise labels (for example, 'Model ready', 'Loading model',
+  'Restoring model', 'No model loaded') without showing the active model filename.
 
 ### Context Assembly Pipeline
 

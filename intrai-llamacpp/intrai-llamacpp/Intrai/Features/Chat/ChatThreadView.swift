@@ -3,6 +3,8 @@ import MarkdownUI
 
 struct ChatThreadView: View {
     @Bindable var viewModel: ChatViewModel
+    let canCopyTranscript: Bool
+    let onCopyTranscript: () -> Void
     private let bubbleRadius: CGFloat = 14
 
     var body: some View {
@@ -25,6 +27,15 @@ struct ChatThreadView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer()
+            Button {
+                onCopyTranscript()
+            } label: {
+                Image(systemName: "doc.on.doc")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(!canCopyTranscript)
+            .accessibilityLabel("Copy chat as Markdown")
             if viewModel.isGenerating {
                 Button("Cancel") {
                     Task { await viewModel.cancelGeneration() }
@@ -201,9 +212,9 @@ struct ChatThreadView: View {
     }
 
     private var modelStatusLine: String {
-        if viewModel.isLoadingModel { return "Loading selected model..." }
-        if viewModel.isRestoringModel { return "Restoring previous model..." }
-        if let modelName = viewModel.loadedModelName { return "Ready: \(modelName)" }
+        if viewModel.isLoadingModel { return "Loading model" }
+        if viewModel.isRestoringModel { return "Restoring model" }
+        if viewModel.loadedModelName != nil { return "Model ready" }
         return "No model loaded"
     }
 }
