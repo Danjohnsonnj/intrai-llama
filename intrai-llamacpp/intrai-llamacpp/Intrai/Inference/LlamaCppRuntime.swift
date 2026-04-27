@@ -5,9 +5,23 @@ import Darwin
 import llama
 
 nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBridge {
+    public struct RuntimeConfig: Sendable {
+        let contextWindow: UInt32
+        let promptSlackTokens: Int
+
+        public static let `default` = RuntimeConfig(contextWindow: 4096, promptSlackTokens: 48)
+
+        public init(contextWindow: UInt32, promptSlackTokens: Int) {
+            self.contextWindow = contextWindow
+            self.promptSlackTokens = promptSlackTokens
+        }
+    }
+
     private var model: OpaquePointer?
     private var context: OpaquePointer?
     private var shouldCancel = false
+    private let config: RuntimeConfig
+    private var contextLimitTokens: Int = Int(RuntimeConfig.default.contextWindow)
 
     private var generationSampler: UnsafeMutablePointer<llama_sampler>?
     private var promptTokenBuffer: UnsafeMutablePointer<llama_token>?
@@ -25,7 +39,10 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
         return runtime.shouldCancel
     }
 
-    public init() {}
+    public init(config: RuntimeConfig = .default) {
+        self.config = config
+        self.contextLimitTokens = Int(config.contextWindow)
+    }
 
     deinit {
         releaseGenerationState(freeContext: true)
@@ -65,7 +82,7 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
         }
 
         var contextParams = llama_context_default_params()
-        contextParams.n_ctx = 2048
+        contextParams.n_ctx = config.contextWindow
 
         let nThreads = max(1, min(8, ProcessInfo.processInfo.processorCount - 2))
         contextParams.n_threads = Int32(nThreads)
@@ -78,10 +95,30 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
 
         model = loadedModel
         context = loadedContext
+        contextLimitTokens = Int(contextParams.n_ctx)
     }
 
     public func unloadModel() {
         releaseGenerationState(freeContext: true)
+    }
+
+    public func estimateTokenCount(for prompt: String) throws -> Int {
+        guard let mdl = model else {
+            throw IntraiError.modelNotLoaded
+        }
+
+        let vocab = llama_model_get_vocab(mdl)
+        let estimated = prompt.withCString { cstr in
+            Int(-llama_tokenize(vocab, cstr, Int32(strlen(cstr)), nil, 0, false, true))
+        }
+        guard estimated > 0 else {
+            throw IntraiError.generationFailed(reason: "Failed to estimate prompt token count.")
+        }
+        return estimated
+    }
+
+    public func currentContextLimit() -> Int {
+        contextLimitTokens
     }
 
     public func startGeneration(prompt: String, options: GenerationOptions) throws {
@@ -106,8 +143,11 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
         guard nTok > 0 else {
             throw IntraiError.generationFailed(reason: "Failed to tokenize the prompt (empty or invalid).")
         }
-        if Int(nTok) > 2000 {
-            throw IntraiError.generationFailed(reason: "The prompt is too long for the current context (2048 tokens).")
+        let promptLimit = max(1, contextLimitTokens - config.promptSlackTokens)
+        if Int(nTok) > promptLimit {
+            throw IntraiError.contextLimitReached(
+                reason: "The prompt is too long for the current context (\(contextLimitTokens) tokens)."
+            )
         }
 
         let buf = UnsafeMutablePointer<llama_token>.allocate(capacity: Int(nTok))
@@ -143,7 +183,7 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
         }
         generationSampler = smpl
 
-        let ctxLimit = 2048
+        let ctxLimit = contextLimitTokens
         let capNew = max(0, ctxLimit - Int(nTok) - 1)
         nPredict = min(max(0, options.maxTokens), capNew)
         nPrompt = Int(nTok)
@@ -154,7 +194,7 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
 
         if nPredict == 0 {
             releaseGenerationState(freeContext: false)
-            throw IntraiError.generationFailed(
+            throw IntraiError.contextLimitReached(
                 reason: "No room left in context for a reply. Try a shorter message."
             )
         }
@@ -196,7 +236,7 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
         }
         if dret == 1 {
             releaseGenerationState(freeContext: false)
-            throw IntraiError.generationFailed(reason: "Context full — try a shorter message.")
+            throw IntraiError.contextLimitReached(reason: "Context full — try a shorter message.")
         }
         nPos += batchLen
 
@@ -317,6 +357,15 @@ nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBri
     }
 
     public func unloadModel() {}
+
+    public func estimateTokenCount(for prompt: String) throws -> Int {
+        _ = prompt
+        throw IntraiError.modelNotLoaded
+    }
+
+    public func currentContextLimit() -> Int {
+        0
+    }
 
     public func startGeneration(prompt: String, options: GenerationOptions) throws {
         _ = prompt

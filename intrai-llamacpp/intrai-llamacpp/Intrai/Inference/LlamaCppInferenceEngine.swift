@@ -16,6 +16,14 @@ public actor LlamaCppInferenceEngine: InferenceEngine {
         bridge.unloadModel()
     }
 
+    public func estimateTokenCount(for prompt: String) async throws -> Int {
+        try bridge.estimateTokenCount(for: prompt)
+    }
+
+    public func currentContextLimit() async -> Int {
+        bridge.currentContextLimit()
+    }
+
     public func generateStream(
         prompt: String,
         options: GenerationOptions

@@ -10,6 +10,7 @@ struct ChatThreadView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            monitoringStrip
             Divider().opacity(0.6)
             transcript
             composer
@@ -82,6 +83,32 @@ struct ChatThreadView: View {
         }
     }
 
+    private var monitoringStrip: some View {
+        HStack(spacing: 8) {
+            statusPill(
+                icon: contextIcon,
+                title: contextLabel,
+                tint: contextTint
+            )
+            statusPill(
+                icon: healthIcon,
+                title: healthLabel,
+                tint: healthTint
+            )
+            if viewModel.isGenerating {
+                statusPill(
+                    icon: "dot.radiowaves.left.and.right",
+                    title: streamLabel,
+                    tint: .blue
+                )
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.35))
+    }
+
     private var composer: some View {
         VStack(spacing: 8) {
             if viewModel.lastFailedPrompt != nil {
@@ -116,6 +143,44 @@ struct ChatThreadView: View {
                 .padding(.vertical, 8)
                 .background(Color(uiColor: .secondarySystemBackground).opacity(0.7))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 12)
+            }
+
+            if let contextNotice = viewModel.contextNotice {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "gauge.with.dots.needle.33percent")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(contextNotice)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                        Spacer()
+                        if viewModel.contextNoticeDetails != nil {
+                            Button(viewModel.isShowingContextNoticeDetails ? "Hide" : "Details") {
+                                viewModel.toggleContextNoticeDetails()
+                            }
+                            .buttonStyle(.plain)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if viewModel.isShowingContextNoticeDetails, let detail = viewModel.contextNoticeDetails {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(detail)
+                            Text(contextDiagnosticLine)
+                            Text(latestGenerationLine)
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
                 .padding(.horizontal, 12)
             }
 
@@ -216,5 +281,119 @@ struct ChatThreadView: View {
         if viewModel.isRestoringModel { return "Restoring model" }
         if viewModel.loadedModelName != nil { return "Model ready" }
         return "No model loaded"
+    }
+
+    private var contextLabel: String {
+        switch viewModel.contextFidelityState {
+        case .normal:
+            return "Context healthy"
+        case .nearLimit:
+            return "Context near limit"
+        case .compactedSummaryActive:
+            return "Compaction active"
+        case .blocked:
+            return "Context blocked"
+        }
+    }
+
+    private var contextIcon: String {
+        switch viewModel.contextFidelityState {
+        case .normal:
+            return "checkmark.shield"
+        case .nearLimit:
+            return "exclamationmark.triangle"
+        case .compactedSummaryActive:
+            return "square.stack.3d.up"
+        case .blocked:
+            return "xmark.octagon"
+        }
+    }
+
+    private var contextTint: Color {
+        switch viewModel.contextFidelityState {
+        case .normal:
+            return .green
+        case .nearLimit:
+            return .orange
+        case .compactedSummaryActive:
+            return .yellow
+        case .blocked:
+            return .red
+        }
+    }
+
+    private var healthLabel: String {
+        switch viewModel.latestMonitoringHealth {
+        case .healthy:
+            return "Generation healthy"
+        case .slow:
+            return "Generation slow"
+        case .compacted:
+            return "Compacted response"
+        case .cancelled:
+            return "Generation cancelled"
+        case .failed:
+            return "Generation failed"
+        case .contextLimited:
+            return "Context limited"
+        }
+    }
+
+    private var healthIcon: String {
+        switch viewModel.latestMonitoringHealth {
+        case .healthy:
+            return "heart.text.square"
+        case .slow:
+            return "tortoise"
+        case .compacted:
+            return "text.justify"
+        case .cancelled:
+            return "slash.circle"
+        case .failed:
+            return "exclamationmark.octagon"
+        case .contextLimited:
+            return "xmark.octagon"
+        }
+    }
+
+    private var healthTint: Color {
+        switch viewModel.latestMonitoringHealth {
+        case .healthy:
+            return .green
+        case .slow:
+            return .orange
+        case .compacted:
+            return .yellow
+        case .cancelled:
+            return .orange
+        case .failed:
+            return .red
+        case .contextLimited:
+            return .red
+        }
+    }
+
+    private var streamLabel: String {
+        let snapshot = viewModel.liveGenerationSnapshot
+        let chars = snapshot.streamedCharacterCount
+        let speed = snapshot.approxCharsPerSecond.map { "\(Int($0.rounded())) chars/s" } ?? "warming up"
+        return "Streaming \(chars) chars (\(speed))"
+    }
+
+    private var contextDiagnosticLine: String {
+        guard let budget = viewModel.tokenBudgetResult else {
+            return "No token budget details available yet."
+        }
+        let percent = Int((budget.utilization * 100).rounded())
+        return "Budget \(budget.estimatedInputTokens)/\(budget.inputBudget) tokens (\(percent)%)"
+    }
+
+    private var latestGenerationLine: String {
+        guard let metrics = viewModel.lastGenerationMetrics else {
+            return "No generation metrics captured yet."
+        }
+        let ttft = metrics.timeToFirstTokenMs.map { "\(Int($0.rounded()))ms TTFT" } ?? "TTFT unavailable"
+        let duration = "\(Int(metrics.generationDurationMs.rounded()))ms total"
+        return "\(ttft), \(duration), outcome: \(metrics.endReason.rawValue)"
     }
 }

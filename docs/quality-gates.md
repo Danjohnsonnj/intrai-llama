@@ -31,14 +31,19 @@ Collect for diagnostics only:
 - [ ] `timeToFirstTokenMs`
 - [ ] `generationDurationMs`
 - [ ] `streamedCharacterCount`
+- [ ] `inputTokenEstimate`
+- [ ] `contextUtilization`
+- [ ] `compactionApplied`
 - [ ] `wasCancelled`
 - [ ] `generationFailed`
+- [ ] `endReason` (`completed`, `cancelled`, `failed`, `contextLimited`)
 
 Metrics should be local development diagnostics, not telemetry uploads in v1.
 
 ### Current implementation hooks
 
 - `ChatViewModel.lastGenerationMetrics`
+- `ChatViewModel.recentGenerationMetrics`
 - `MetricsRecorder` protocol for pluggable sinks
 - `ConsoleMetricsRecorder` default local logging sink
 - `InMemoryMetricsRecorder` for test/dev assertions

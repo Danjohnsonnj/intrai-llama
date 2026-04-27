@@ -14,14 +14,16 @@ The v1 release is intentionally strict and focused on core chat reliability.
 - **Persistent history**: Sessions and messages survive app relaunch.
 - **Streaming responses**: Assistant output streams into the active message bubble.
 - **Manual model import**: User imports a local `.gguf` file and loads it for inference.
+- **Context budget monitoring**: Preflight context checks surface near-limit/full states with detail messaging and soft history compaction.
+- **Markdown chat UX**: Message bubbles render markdown and transcript copy supports markdown-formatted export.
 - **Baseline error handling**: Friendly errors for model load failure, generation failure,
   and cancellation, with retry support for failed prompts.
 
 ### Explicitly Out of Scope for v1
 
 - Memory snapshot system
-- Markdown render/export features
-- Context usage progress bar
+- Rich markdown enhancements beyond in-chat rendering and clipboard export
+- Historical context timeline/progress visualization UI
 - Siri / App Intents integration
 - In-app model downloading UX
 - Performance SLA enforcement (tokens/sec target)
@@ -54,8 +56,9 @@ The v1 release is intentionally strict and focused on core chat reliability.
 ## Current Status
 
 Core implementation is complete and the Xcode project builds with zero errors and zero
-warnings. The token generation loop in `LlamaCppRuntime` is a placeholder; wiring the
-real `llama.cpp` tokenization/sampling decode is the next implementation step.
+warnings. `LlamaCppRuntime` now runs the real llama.cpp tokenization/sampling decode
+loop for streaming generation. Remaining validation work is focused on real-device smoke
+testing and tuning defaults.
 
 ## Building (MVP Workflow)
 

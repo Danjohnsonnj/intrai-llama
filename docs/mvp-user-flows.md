@@ -24,11 +24,29 @@
 ## 2) Message Generation Flow (Streaming)
 
 1. User enters prompt and submits.
-2. App persists user message.
-3. App creates assistant placeholder message with status `streaming`.
-4. `InferenceEngine.generateStream` begins.
-5. Chunks append to assistant message content in real time.
-6. On completion, assistant status becomes `complete`.
+2. App runs prompt preflight:
+   - assembles candidate prompt from summary + recent history + user input
+   - estimates input tokens and evaluates context budget pressure
+   - applies soft compaction to older history only when required
+3. App surfaces context notice/details when pressure or compaction applies.
+4. App persists user message.
+5. App creates assistant placeholder message with status `streaming`.
+6. `InferenceEngine.generateStream` begins.
+7. Chunks append to assistant message content in real time.
+8. On completion, assistant status becomes `complete`.
+
+### Monitoring Surface During Generation
+
+- Header-adjacent monitoring strip shows:
+  - context state labels: `Context healthy`, `Context near limit`, `Compaction active`, `Context blocked`
+  - generation health labels: `Generation healthy`, `Generation slow`, `Compacted response`, `Generation cancelled`, `Generation failed`, `Context limited`
+  - live streaming activity with approximate throughput.
+- Context details panel can expand to show budget utilization and latest generation outcome.
+- Context notice copy uses:
+  - `Context near limit`
+  - `Context high`
+  - `Context full`
+  - `History compacted to preserve response quality`
 
 ## 3) Manual Model Import Flow (MVP)
 
@@ -61,6 +79,12 @@ stored file is still available in app-managed storage.
 1. Streaming fails.
 2. Assistant message status set to `failed` with reason.
 3. UI offers one-tap retry using the same user prompt.
+
+### Context Limit Reached
+
+1. Prompt preflight or decode path detects context budget exhaustion.
+2. App surfaces user-facing guidance ('Context full. Start a new chat or shorten your message.').
+3. Monitoring state transitions to `Context blocked` / `Context limited` for visibility.
 
 ### Generation Cancellation
 

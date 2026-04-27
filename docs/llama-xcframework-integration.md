@@ -45,9 +45,12 @@ Step 3 adds these concrete integration scaffolds:
 
 ## 4) Current limitations
 
-- Tokenization/sampling decode loop in `LlamaCppRuntime` is placeholder.
-  `startGeneration` and `nextTokenChunk` accept inputs but return `nil` immediately.
-  Wiring the real llama.cpp token decode loop is the next implementation step.
+- Runtime now uses real llama.cpp tokenization/sampling decode in `LlamaCppRuntime`
+  for streaming generation.
+- Context-limit handling is explicit (`IntraiError.contextLimitReached`) for prompt
+  preflight and decode paths that exceed usable budget.
+- Inference bridge now exposes prompt token estimation and current context limit so
+  `ChatViewModel` can preflight context pressure before generation.
 - Framework linking and `import llama` module resolution are verified (build succeeds
   with zero errors and zero warnings).
 
@@ -58,8 +61,7 @@ Step 3 adds these concrete integration scaffolds:
 
 ## 6) Real-device tuning guidance (reference)
 
-These settings are recommended starting points for iPhone 16 Pro+ runtime tuning once
-the real token decode loop is wired in `LlamaCppRuntime`.
+These settings are recommended starting points for iPhone 16 Pro+ runtime tuning.
 
 - `n_gpu_layers`:
   - Real device: set to `-1` (or a value >= model layer count) to maximize Metal offload.
@@ -72,12 +74,11 @@ Notes:
 
 - Higher `n_ctx` increases KV cache memory usage significantly.
 - Full GPU offload can still fail if the chosen model/quantization exceeds device memory.
-- Current runtime still uses placeholder generation, so these values should be treated as
-  policy defaults to validate after token generation is fully implemented.
+- Validate these values against real-device prompt fixtures and memory behavior.
 
 ## 7) Real-device tuning checklist (runbook)
 
-Use this once token generation is fully implemented in `LlamaCppRuntime`.
+Use this to validate and tune the implemented token generation path in `LlamaCppRuntime`.
 
 ### Test preconditions
 

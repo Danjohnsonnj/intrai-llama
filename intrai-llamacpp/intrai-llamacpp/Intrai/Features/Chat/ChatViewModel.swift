@@ -22,12 +22,32 @@ public final class ChatViewModel {
     public private(set) var errorMessage: String?
     public private(set) var lastFailedPrompt: String?
     public private(set) var lastGenerationMetrics: GenerationMetrics?
+    public private(set) var recentGenerationMetrics: [GenerationMetrics] = []
+    public private(set) var generationPhase: GenerationPhase = .idle
+    public private(set) var liveGenerationSnapshot = GenerationMonitoringSnapshot(
+        phase: .idle,
+        elapsedMs: 0,
+        streamedCharacterCount: 0,
+        approxCharsPerSecond: nil
+    )
+    public private(set) var latestMonitoringHealth: MonitoringHealthState = .healthy
+    public private(set) var tokenBudgetResult: TokenBudgetResult?
+    public private(set) var contextNotice: String?
+    public private(set) var contextNoticeDetails: String?
+    public private(set) var isShowingContextNoticeDetails = false
+    public private(set) var contextFidelityState: ContextFidelityState = .normal
 
     private var generationTask: Task<Void, Never>?
     private var activeAssistantMessageID: UUID?
     private var activeGenerationPromptID: UUID?
     private var activeGenerationSessionID: UUID?
     private var cancellationRequested = false
+    private var activeGenerationInputTokens: Int?
+    private var activeContextUtilization: Double?
+    private var activeCompactionApplied = false
+    private var rollingHistorySummaries: [UUID: String] = [:]
+    private let recentMetricsWindowSize = 10
+    private let pinnedRecentMessageCount = 12
 
     public init(
         sessionRepository: SessionRepository,
@@ -191,18 +211,44 @@ public final class ChatViewModel {
             setError("Load a model before sending messages.")
             return
         }
+        generationPhase = .preparing
 
         do {
             let sessionID = try await ensureSessionID()
+            if selectedSessionID != sessionID {
+                await loadMessages(for: sessionID)
+            }
+
+            let preflight = try await preparePromptWithinBudget(sessionID: sessionID, userInput: text)
+            tokenBudgetResult = preflight.budget
+            contextNotice = preflight.notice
+            contextNoticeDetails = preflight.noticeDetails
+            isShowingContextNoticeDetails = false
+
+            let options = GenerationOptions(
+                maxTokens: preflight.budget.maxOutputTokens,
+                temperature: 0.7
+            )
             let userMessage = try await messageRepository.appendUserMessage(sessionID: sessionID, content: text)
             let assistantMessage = try await messageRepository.appendAssistantPlaceholder(sessionID: sessionID)
             activeAssistantMessageID = assistantMessage.id
             activeGenerationPromptID = userMessage.id
             activeGenerationSessionID = sessionID
+            activeGenerationInputTokens = preflight.budget.estimatedInputTokens
+            activeContextUtilization = preflight.budget.utilization
+            activeCompactionApplied = preflight.compactionApplied
+            contextFidelityState = fidelityState(for: preflight.budget, compactionApplied: preflight.compactionApplied)
 
             await loadMessages(for: sessionID)
             clearError()
             isGenerating = true
+            generationPhase = .waitingForFirstToken
+            liveGenerationSnapshot = GenerationMonitoringSnapshot(
+                phase: .waitingForFirstToken,
+                elapsedMs: 0,
+                streamedCharacterCount: 0,
+                approxCharsPerSecond: nil
+            )
             lastFailedPrompt = nil
             cancellationRequested = false
 
@@ -217,8 +263,8 @@ public final class ChatViewModel {
 
                 do {
                     for try await chunk in await self.inferenceEngine.generateStream(
-                        prompt: text,
-                        options: GenerationOptions()
+                        prompt: preflight.prompt,
+                        options: options
                     ) {
                         guard let assistantID = self.activeAssistantMessageID else {
                             continue
@@ -227,7 +273,15 @@ public final class ChatViewModel {
                         streamedCharacterCount += chunk.count
                         if firstTokenAt == nil {
                             firstTokenAt = Date()
+                            self.generationPhase = .streaming
                         }
+                        let elapsedMs = max(1, Date().timeIntervalSince(startedAt) * 1000)
+                        self.liveGenerationSnapshot = GenerationMonitoringSnapshot(
+                            phase: self.generationPhase,
+                            elapsedMs: elapsedMs,
+                            streamedCharacterCount: streamedCharacterCount,
+                            approxCharsPerSecond: Double(streamedCharacterCount) / (elapsedMs / 1000)
+                        )
                         if let session = self.selectedSessionID {
                             await self.loadMessages(for: session)
                         }
@@ -247,21 +301,36 @@ public final class ChatViewModel {
                 wasCancelled = wasCancelled || self.cancellationRequested
 
                 let finishedAt = Date()
+                let endReason = self.resolveEndReason(
+                    generationFailed: generationFailed,
+                    wasCancelled: wasCancelled
+                )
                 await self.recordMetrics(
                     startedAt: startedAt,
                     finishedAt: finishedAt,
                     firstTokenAt: firstTokenAt,
                     streamedCharacterCount: streamedCharacterCount,
                     wasCancelled: wasCancelled,
-                    generationFailed: generationFailed
+                    generationFailed: generationFailed,
+                    endReason: endReason
                 )
 
                 self.isGenerating = false
+                self.generationPhase = .idle
+                self.liveGenerationSnapshot = GenerationMonitoringSnapshot(
+                    phase: .idle,
+                    elapsedMs: finishedAt.timeIntervalSince(startedAt) * 1000,
+                    streamedCharacterCount: streamedCharacterCount,
+                    approxCharsPerSecond: self.liveGenerationSnapshot.approxCharsPerSecond
+                )
                 self.generationTask = nil
                 self.activeAssistantMessageID = nil
                 self.activeGenerationPromptID = nil
                 self.activeGenerationSessionID = nil
                 self.cancellationRequested = false
+                self.activeGenerationInputTokens = nil
+                self.activeContextUtilization = nil
+                self.activeCompactionApplied = false
 
                 if let session = self.selectedSessionID {
                     await self.loadMessages(for: session)
@@ -269,6 +338,7 @@ public final class ChatViewModel {
                 }
             }
         } catch {
+            generationPhase = .idle
             setError("Failed to send message: \(error.localizedDescription)")
         }
     }
@@ -287,7 +357,11 @@ public final class ChatViewModel {
         }
 
         isGenerating = false
+        generationPhase = .idle
         activeAssistantMessageID = nil
+        activeGenerationInputTokens = nil
+        activeContextUtilization = nil
+        activeCompactionApplied = false
         if let sessionID = selectedSessionID {
             await loadMessages(for: sessionID)
         }
@@ -304,6 +378,11 @@ public final class ChatViewModel {
 
     public func clearError() {
         errorMessage = nil
+    }
+
+    public func toggleContextNoticeDetails() {
+        guard contextNoticeDetails != nil else { return }
+        isShowingContextNoticeDetails.toggle()
     }
 
     public func markdownTranscriptForSelectedSession() -> String? {
@@ -337,6 +416,136 @@ public final class ChatViewModel {
         return sections.joined(separator: "\n\n")
     }
 
+    private func preparePromptWithinBudget(
+        sessionID: UUID,
+        userInput: String
+    ) async throws -> (prompt: String, budget: TokenBudgetResult, compactionApplied: Bool, notice: String?, noticeDetails: String?) {
+        let contextWindow = await inferenceEngine.currentContextLimit()
+        let policy = tokenPolicy(for: loadedModelName, contextWindow: contextWindow)
+
+        var summary = rollingHistorySummaries[sessionID]
+        var candidateMessages = messages.filter { $0.sessionID == sessionID && $0.status != .pending }
+        let pinnedRecentCount = pinnedRecentMessageCount
+        var compactionApplied = false
+
+        while true {
+            let prompt = composePrompt(
+                summary: summary,
+                history: candidateMessages,
+                userInput: userInput
+            )
+            let estimatedTokens = try await inferenceEngine.estimateTokenCount(for: prompt)
+            let budget = policy.evaluate(contextWindow: contextWindow, estimatedInputTokens: estimatedTokens)
+
+            if budget.estimatedInputTokens <= budget.inputBudget {
+                if let summary {
+                    rollingHistorySummaries[sessionID] = summary
+                }
+                return (
+                    prompt: prompt,
+                    budget: budget,
+                    compactionApplied: compactionApplied,
+                    notice: contextNoticeText(for: budget, compactionApplied: compactionApplied),
+                    noticeDetails: contextNoticeDetailText(for: budget, compactionApplied: compactionApplied)
+                )
+            }
+
+            let compactableCount = max(0, candidateMessages.count - pinnedRecentCount)
+            guard compactableCount > 1 else {
+                throw IntraiError.contextLimitReached(
+                    reason: "Context full. Start a new chat or shorten your message."
+                )
+            }
+
+            let chunkCount = max(2, compactableCount / 3)
+            let toCompact = Array(candidateMessages.prefix(chunkCount))
+            let compactedSummary = summarize(messages: toCompact)
+            summary = mergedSummary(existing: summary, addition: compactedSummary)
+            candidateMessages.removeFirst(chunkCount)
+            compactionApplied = true
+        }
+    }
+
+    private func tokenPolicy(for modelName: String?, contextWindow: Int) -> TokenBudgetPolicy {
+        let lowered = (modelName ?? "").lowercased()
+        if lowered.contains("70b") || lowered.contains("34b") {
+            return TokenBudgetPolicy(maxOutputTokens: 320, safetyMargin: 256)
+        }
+        if lowered.contains("14b") || lowered.contains("13b") {
+            return TokenBudgetPolicy(maxOutputTokens: 384, safetyMargin: 224)
+        }
+        if contextWindow <= 2048 {
+            return TokenBudgetPolicy(maxOutputTokens: 256, safetyMargin: 160)
+        }
+        return TokenBudgetPolicy()
+    }
+
+    private func composePrompt(summary: String?, history: [ChatMessageRecord], userInput: String) -> String {
+        var sections: [String] = []
+
+        sections.append("You are Intrai, a concise local assistant.")
+        if let summary, !summary.isEmpty {
+            sections.append("Conversation summary:\n\(summary)")
+        }
+
+        if !history.isEmpty {
+            let renderedHistory = history.map { message in
+                let role = message.role == .user ? "User" : "Assistant"
+                return "\(role): \(message.content)"
+            }.joined(separator: "\n")
+            sections.append("Recent conversation:\n\(renderedHistory)")
+        }
+
+        sections.append("User: \(userInput)")
+        sections.append("Assistant:")
+        return sections.joined(separator: "\n\n")
+    }
+
+    private func summarize(messages: [ChatMessageRecord]) -> String {
+        let lines = messages.map { message -> String in
+            let role = message.role == .user ? "User" : "Assistant"
+            let compact = message.content
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "\n", with: " ")
+            let clipped = compact.count > 220 ? String(compact.prefix(220)) + "…" : compact
+            return "- \(role): \(clipped)"
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func mergedSummary(existing: String?, addition: String) -> String {
+        guard let existing, !existing.isEmpty else { return addition }
+        return existing + "\n" + addition
+    }
+
+    private func contextNoticeText(for budget: TokenBudgetResult, compactionApplied: Bool) -> String? {
+        if compactionApplied {
+            return "History compacted to preserve response quality"
+        }
+        switch budget.pressure {
+        case .warning:
+            return "Context near limit"
+        case .compacting:
+            return "Context high"
+        case .blocked:
+            return "Context full"
+        case .normal:
+            return nil
+        }
+    }
+
+    private func contextNoticeDetailText(for budget: TokenBudgetResult, compactionApplied: Bool) -> String? {
+        guard contextNoticeText(for: budget, compactionApplied: compactionApplied) != nil else {
+            return nil
+        }
+        let percent = Int((budget.utilization * 100).rounded())
+        let base = "\(budget.estimatedInputTokens)/\(budget.inputBudget) prompt tokens used (\(percent)%)."
+        if compactionApplied {
+            return base + " Older turns were summarized; recent turns remain verbatim."
+        }
+        return "\(budget.estimatedInputTokens)/\(budget.inputBudget) prompt tokens used (\(percent)%)."
+    }
+
     private func ensureSessionID() async throws -> UUID {
         if let selectedSessionID {
             return selectedSessionID
@@ -361,6 +570,16 @@ public final class ChatViewModel {
         }
 
         self.lastFailedPrompt = prompt
+        if let intraiError = error as? IntraiError {
+            switch intraiError {
+            case .contextLimitReached(let reason):
+                self.setError("Generation stopped: \(reason)")
+                self.contextFidelityState = .blocked
+            default:
+                self.setError("Generation failed: \(intraiError.localizedDescription)")
+            }
+            return
+        }
         self.setError("Generation failed: \(error.localizedDescription)")
     }
 
@@ -374,7 +593,8 @@ public final class ChatViewModel {
         firstTokenAt: Date?,
         streamedCharacterCount: Int,
         wasCancelled: Bool,
-        generationFailed: Bool
+        generationFailed: Bool,
+        endReason: GenerationEndReason
     ) async {
         guard let promptID = activeGenerationPromptID, let sessionID = activeGenerationSessionID else {
             return
@@ -390,11 +610,68 @@ public final class ChatViewModel {
             timeToFirstTokenMs: timeToFirstTokenMs,
             generationDurationMs: generationDurationMs,
             streamedCharacterCount: streamedCharacterCount,
+            inputTokenEstimate: activeGenerationInputTokens,
+            contextUtilization: activeContextUtilization,
+            compactionApplied: activeCompactionApplied,
             wasCancelled: wasCancelled,
-            generationFailed: generationFailed
+            generationFailed: generationFailed,
+            endReason: endReason
         )
 
         await metricsRecorder.recordGeneration(metrics)
         lastGenerationMetrics = metrics
+        recentGenerationMetrics.append(metrics)
+        if recentGenerationMetrics.count > recentMetricsWindowSize {
+            recentGenerationMetrics.removeFirst(recentGenerationMetrics.count - recentMetricsWindowSize)
+        }
+        latestMonitoringHealth = classifyMonitoringHealth(from: metrics)
+    }
+
+    private func resolveEndReason(generationFailed: Bool, wasCancelled: Bool) -> GenerationEndReason {
+        if wasCancelled {
+            return .cancelled
+        }
+        if generationFailed {
+            if let errorMessage, errorMessage.localizedCaseInsensitiveContains("context") {
+                return .contextLimited
+            }
+            return .failed
+        }
+        return .completed
+    }
+
+    private func fidelityState(for budget: TokenBudgetResult, compactionApplied: Bool) -> ContextFidelityState {
+        if compactionApplied {
+            return .compactedSummaryActive
+        }
+        switch budget.pressure {
+        case .warning:
+            return .nearLimit
+        case .blocked:
+            return .blocked
+        case .normal, .compacting:
+            return .normal
+        }
+    }
+
+    private func classifyMonitoringHealth(from metrics: GenerationMetrics) -> MonitoringHealthState {
+        switch metrics.endReason {
+        case .cancelled:
+            return .cancelled
+        case .failed:
+            return .failed
+        case .contextLimited:
+            return .contextLimited
+        case .completed:
+            break
+        }
+
+        if metrics.compactionApplied {
+            return .compacted
+        }
+        if let ttft = metrics.timeToFirstTokenMs, ttft > 2500 {
+            return .slow
+        }
+        return .healthy
     }
 }

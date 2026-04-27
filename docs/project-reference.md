@@ -10,8 +10,9 @@ The MVP is scoped to reliable core chat behavior on iPhone 16 Pro+ devices runni
 ## Current Status
 
 Core implementation complete. Xcode project builds with zero errors and zero warnings.
-The token generation loop in `LlamaCppRuntime` is a placeholder; wiring real `llama.cpp`
-tokenization and sampling is the next step. Manual smoke testing on device is pending.
+`LlamaCppRuntime` now performs real llama.cpp tokenization/sampling for streaming output.
+Context-budget preflight, soft compaction, and monitoring UI states are implemented.
+Manual smoke testing on device is pending.
 
 ---
 
@@ -71,6 +72,13 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 - Resume closed app (force quit or system closed) with previously selected model, if it is still accessible.
 - Model name should be present on the main screen.
 - Streaming generation loop emits chunks to the UI.
+- Prompt preflight estimates token usage against current context window and applies
+  soft history compaction only when needed.
+- Chat thread surfaces monitoring states with user-facing labels:
+  - Context: `Context healthy`, `Context near limit`, `Compaction active`, `Context blocked`
+  - Generation: `Generation healthy`, `Generation slow`, `Compacted response`,
+    `Generation cancelled`, `Generation failed`, `Context limited`
+- Context detail UI can show budget utilization and latest generation diagnostics.
 - Chat message markdown rendering uses `MarkdownUI` to correctly handle multiline content
   and table blocks in message bubbles.
 - Header model status uses concise labels (for example, 'Model ready', 'Loading model',
@@ -109,7 +117,6 @@ tokenization and sampling is the next step. Manual smoke testing on device is pe
 
 ## Known Pending Items
 
-- Wire real `llama.cpp` tokenization/sampling loop in `LlamaCppRuntime`.
 - Apply and validate real-device runtime defaults (`n_gpu_layers` for full Metal offload,
   `n_ctx` baseline 4096/8192 policy) during on-device tuning pass.
 - Run full MVP smoke checklist on physical device.

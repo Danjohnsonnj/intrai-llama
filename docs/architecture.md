@@ -58,6 +58,8 @@ Domain models use a two-type pattern: SwiftData entities (`ChatSessionEntity`,
 
 - `loadModel(from modelURL: URL) async throws`
 - `unloadModel() async`
+- `estimateTokenCount(for prompt: String) async throws -> Int`
+- `currentContextLimit() async -> Int`
 - `generateStream(prompt: String, options: GenerationOptions) async -> AsyncThrowingStream<String, Error>`
 - `cancelGeneration() async`
 
@@ -72,6 +74,7 @@ All errors use a single `IntraiError` enum:
 - `.modelNotLoaded` - inference attempted without a loaded model.
 - `.modelLoadFailed(reason:)` - file not found, invalid gguf, context creation failure.
 - `.generationFailed(reason:)` - runtime failure or stream interruption.
+- `.contextLimitReached(reason:)` - prompt or decode path exceeded usable context budget.
 - `.persistenceFailed(reason:)` - write/read failures in SwiftData operations.
 
 All cases surface user-friendly messages through `ChatViewModel`.
@@ -110,6 +113,26 @@ all Swift upcoming features enabled (Swift 5 language mode, preparing for Swift 
   with `Sendable` conformance. `LlamaCppInferenceEngine` is an explicit `actor` that
   serializes access to the C bridge. `LlamaCppRuntime` is `nonisolated @unchecked Sendable`.
 - **Metrics**: `MetricsRecorder` protocol is `nonisolated Sendable` with `async` methods.
+
+## Monitoring and Context Budget Pipeline
+
+- `ChatViewModel` runs prompt preflight before generation:
+  - compose prompt from summary + recent history + user input
+  - estimate input token count through `InferenceEngine`
+  - evaluate pressure via `TokenBudgetPolicy`
+  - apply soft compaction to older history only when over budget
+- Generated telemetry captures:
+  - ttft/duration/chars streamed
+  - estimated input tokens and context utilization
+  - compaction flag
+  - terminal reason (`completed`, `cancelled`, `failed`, `contextLimited`)
+- UI consumes this state through:
+  - `contextNotice` + details expansion (`Context near limit`, `Context high`,
+    `Context full`, `History compacted to preserve response quality`)
+  - monitoring strip with context fidelity and generation health indicators
+    (`Context healthy`, `Context near limit`, `Compaction active`, `Context blocked`,
+    `Generation healthy`, `Generation slow`, `Compacted response`,
+    `Generation cancelled`, `Generation failed`, `Context limited`)
 
 ## Non-Goals for v1 Architecture
 

@@ -21,9 +21,11 @@ Use this checklist during manual validation runs.
 - [x] Manual `.gguf` import succeeds (file copied under Application Support/Models; not dependent on Files session after dismiss)
 - [ ] Re-importing the same `.gguf` filename refreshes the stored copy and loads
 - [x] Sending prompt creates user + assistant placeholder entries
+- [ ] Context preflight shows `Context near limit` or `History compacted to preserve response quality` when applicable
 - [x] Assistant message streams incrementally
 - [ ] Cancel generation marks assistant message as `cancelled`
 - [ ] Generation failure marks assistant message as `failed`
+- [ ] Context-limit stop shows actionable guidance plus `Context blocked` / `Context limited` states
 - [ ] Retry from failed prompt produces a new assistant response
 
 ## Local Instrumentation Check
@@ -33,8 +35,12 @@ Use this checklist during manual validation runs.
   - [ ] `timeToFirstTokenMs`
   - [ ] `generationDurationMs`
   - [ ] `streamedCharacterCount`
+  - [ ] `inputTokenEstimate`
+  - [ ] `contextUtilization`
+  - [ ] `compactionApplied`
   - [ ] `wasCancelled`
   - [ ] `generationFailed`
+  - [ ] `endReason`
 
 ## Exit Criteria
 
