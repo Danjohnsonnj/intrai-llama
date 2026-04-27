@@ -19,7 +19,7 @@ public actor LlamaCppInferenceEngine: InferenceEngine {
     public func generateStream(
         prompt: String,
         options: GenerationOptions
-    ) -> AsyncThrowingStream<String, Error> {
+    ) async -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let generationTask = Task {
                 if isGenerating {

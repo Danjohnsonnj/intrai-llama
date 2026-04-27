@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-public actor SwiftDataSessionRepository: SessionRepository {
+public final class SwiftDataSessionRepository: SessionRepository {
     private let context: ModelContext
 
     public init(context: ModelContext) {

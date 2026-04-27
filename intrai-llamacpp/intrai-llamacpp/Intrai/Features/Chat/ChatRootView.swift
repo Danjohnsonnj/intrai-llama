@@ -2,11 +2,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 public struct ChatRootView: View {
-    @StateObject private var viewModel: ChatViewModel
+    @State private var viewModel: ChatViewModel
     @State private var isShowingModelImporter = false
 
     public init(viewModel: ChatViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+        _viewModel = State(wrappedValue: viewModel)
     }
 
     public var body: some View {

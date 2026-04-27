@@ -1,0 +1,596 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		21BD76DA2F9EE2E400839979 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 21BD76C42F9EE2E300839979 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 21BD76CB2F9EE2E300839979;
+			remoteInfo = "intrai-llamacpp";
+		};
+		21BD76E42F9EE2E400839979 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 21BD76C42F9EE2E300839979 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 21BD76CB2F9EE2E300839979;
+			remoteInfo = "intrai-llamacpp";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXBuildFile section */
+		AA0000012FA0000000FF0002 /* llama.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA0000012FA0000000FF0001 /* llama.xcframework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		21BD76CC2F9EE2E300839979 /* intrai-llamacpp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "intrai-llamacpp.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		21BD76D92F9EE2E400839979 /* intrai-llamacppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "intrai-llamacppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		21BD76E32F9EE2E400839979 /* intrai-llamacppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "intrai-llamacppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000012FA0000000FF0001 /* llama.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = "llama.xcframework"; path = "../vendor/llama/llama.xcframework"; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		21BD76CE2F9EE2E300839979 /* intrai-llamacpp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "intrai-llamacpp";
+			sourceTree = "<group>";
+		};
+		21BD76DC2F9EE2E400839979 /* intrai-llamacppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "intrai-llamacppTests";
+			sourceTree = "<group>";
+		};
+		21BD76E62F9EE2E400839979 /* intrai-llamacppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "intrai-llamacppUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		21BD76C92F9EE2E300839979 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000012FA0000000FF0002 /* llama.xcframework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21BD76D62F9EE2E400839979 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21BD76E02F9EE2E400839979 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		21BD76C32F9EE2E300839979 = {
+			isa = PBXGroup;
+			children = (
+				21BD76CE2F9EE2E300839979 /* intrai-llamacpp */,
+				21BD76DC2F9EE2E400839979 /* intrai-llamacppTests */,
+				21BD76E62F9EE2E400839979 /* intrai-llamacppUITests */,
+				21BD76CD2F9EE2E300839979 /* Products */,
+				AA0000012FA0000000FF0001 /* llama.xcframework */,
+			);
+			sourceTree = "<group>";
+		};
+		21BD76CD2F9EE2E300839979 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				21BD76CC2F9EE2E300839979 /* intrai-llamacpp.app */,
+				21BD76D92F9EE2E400839979 /* intrai-llamacppTests.xctest */,
+				21BD76E32F9EE2E400839979 /* intrai-llamacppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		21BD76CB2F9EE2E300839979 /* intrai-llamacpp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21BD76ED2F9EE2E400839979 /* Build configuration list for PBXNativeTarget "intrai-llamacpp" */;
+			buildPhases = (
+				21BD76C82F9EE2E300839979 /* Sources */,
+				21BD76C92F9EE2E300839979 /* Frameworks */,
+				21BD76CA2F9EE2E300839979 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				21BD76CE2F9EE2E300839979 /* intrai-llamacpp */,
+			);
+			name = "intrai-llamacpp";
+			packageProductDependencies = (
+			);
+			productName = "intrai-llamacpp";
+			productReference = 21BD76CC2F9EE2E300839979 /* intrai-llamacpp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		21BD76D82F9EE2E400839979 /* intrai-llamacppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21BD76F02F9EE2E400839979 /* Build configuration list for PBXNativeTarget "intrai-llamacppTests" */;
+			buildPhases = (
+				21BD76D52F9EE2E400839979 /* Sources */,
+				21BD76D62F9EE2E400839979 /* Frameworks */,
+				21BD76D72F9EE2E400839979 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				21BD76DB2F9EE2E400839979 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				21BD76DC2F9EE2E400839979 /* intrai-llamacppTests */,
+			);
+			name = "intrai-llamacppTests";
+			packageProductDependencies = (
+			);
+			productName = "intrai-llamacppTests";
+			productReference = 21BD76D92F9EE2E400839979 /* intrai-llamacppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		21BD76E22F9EE2E400839979 /* intrai-llamacppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21BD76F32F9EE2E400839979 /* Build configuration list for PBXNativeTarget "intrai-llamacppUITests" */;
+			buildPhases = (
+				21BD76DF2F9EE2E400839979 /* Sources */,
+				21BD76E02F9EE2E400839979 /* Frameworks */,
+				21BD76E12F9EE2E400839979 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				21BD76E52F9EE2E400839979 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				21BD76E62F9EE2E400839979 /* intrai-llamacppUITests */,
+			);
+			name = "intrai-llamacppUITests";
+			packageProductDependencies = (
+			);
+			productName = "intrai-llamacppUITests";
+			productReference = 21BD76E32F9EE2E400839979 /* intrai-llamacppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		21BD76C42F9EE2E300839979 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					21BD76CB2F9EE2E300839979 = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					21BD76D82F9EE2E400839979 = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 21BD76CB2F9EE2E300839979;
+					};
+					21BD76E22F9EE2E400839979 = {
+						CreatedOnToolsVersion = 26.4.1;
+						TestTargetID = 21BD76CB2F9EE2E300839979;
+					};
+				};
+			};
+			buildConfigurationList = 21BD76C72F9EE2E300839979 /* Build configuration list for PBXProject "intrai-llamacpp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 21BD76C32F9EE2E300839979;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 21BD76CD2F9EE2E300839979 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				21BD76CB2F9EE2E300839979 /* intrai-llamacpp */,
+				21BD76D82F9EE2E400839979 /* intrai-llamacppTests */,
+				21BD76E22F9EE2E400839979 /* intrai-llamacppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		21BD76CA2F9EE2E300839979 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21BD76D72F9EE2E400839979 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21BD76E12F9EE2E400839979 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		21BD76C82F9EE2E300839979 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21BD76D52F9EE2E400839979 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21BD76DF2F9EE2E400839979 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		21BD76DB2F9EE2E400839979 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 21BD76CB2F9EE2E300839979 /* intrai-llamacpp */;
+			targetProxy = 21BD76DA2F9EE2E400839979 /* PBXContainerItemProxy */;
+		};
+		21BD76E52F9EE2E400839979 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 21BD76CB2F9EE2E300839979 /* intrai-llamacpp */;
+			targetProxy = 21BD76E42F9EE2E400839979 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		21BD76EB2F9EE2E400839979 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = DB7PBBZ5ZK;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		21BD76EC2F9EE2E400839979 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = DB7PBBZ5ZK;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		21BD76EE2F9EE2E400839979 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DB7PBBZ5ZK;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-lc++",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.intrai.intrai-llamacpp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		21BD76EF2F9EE2E400839979 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DB7PBBZ5ZK;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-lc++",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.intrai.intrai-llamacpp";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		21BD76F12F9EE2E400839979 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DB7PBBZ5ZK;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.intrai.intrai-llamacppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/intrai-llamacpp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/intrai-llamacpp";
+			};
+			name = Debug;
+		};
+		21BD76F22F9EE2E400839979 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DB7PBBZ5ZK;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.intrai.intrai-llamacppTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/intrai-llamacpp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/intrai-llamacpp";
+			};
+			name = Release;
+		};
+		21BD76F42F9EE2E400839979 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DB7PBBZ5ZK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.intrai.intrai-llamacppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "intrai-llamacpp";
+			};
+			name = Debug;
+		};
+		21BD76F52F9EE2E400839979 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = DB7PBBZ5ZK;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.intrai.intrai-llamacppUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "intrai-llamacpp";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		21BD76C72F9EE2E300839979 /* Build configuration list for PBXProject "intrai-llamacpp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21BD76EB2F9EE2E400839979 /* Debug */,
+				21BD76EC2F9EE2E400839979 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21BD76ED2F9EE2E400839979 /* Build configuration list for PBXNativeTarget "intrai-llamacpp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21BD76EE2F9EE2E400839979 /* Debug */,
+				21BD76EF2F9EE2E400839979 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21BD76F02F9EE2E400839979 /* Build configuration list for PBXNativeTarget "intrai-llamacppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21BD76F12F9EE2E400839979 /* Debug */,
+				21BD76F22F9EE2E400839979 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21BD76F32F9EE2E400839979 /* Build configuration list for PBXNativeTarget "intrai-llamacppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21BD76F42F9EE2E400839979 /* Debug */,
+				21BD76F52F9EE2E400839979 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 21BD76C42F9EE2E300839979 /* Project object */;
+}

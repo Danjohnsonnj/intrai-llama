@@ -3,7 +3,7 @@ import Foundation
 #if canImport(llama)
 import llama
 
-public final class LlamaCppRuntime: LlamaCppBridge {
+nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBridge {
     private var model: OpaquePointer?
     private var context: OpaquePointer?
     private var shouldCancel = false
@@ -88,7 +88,7 @@ public final class LlamaCppRuntime: LlamaCppBridge {
 
 #else
 
-public final class LlamaCppRuntime: LlamaCppBridge {
+nonisolated public final class LlamaCppRuntime: @unchecked Sendable, LlamaCppBridge {
     public init() {}
 
     public func loadModel(path: String) throws {

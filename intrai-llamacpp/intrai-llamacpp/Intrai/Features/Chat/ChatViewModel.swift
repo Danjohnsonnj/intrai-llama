@@ -1,23 +1,25 @@
 import Foundation
+import Observation
 import SwiftUI
 
 @MainActor
-public final class ChatViewModel: ObservableObject {
+@Observable
+public final class ChatViewModel {
     private let sessionRepository: SessionRepository
     private let messageRepository: MessageRepository
     private let inferenceEngine: InferenceEngine
     private let metricsRecorder: MetricsRecorder
 
-    @Published public private(set) var sessions: [ChatSessionRecord] = []
-    @Published public private(set) var messages: [ChatMessageRecord] = []
-    @Published public var selectedSessionID: UUID?
-    @Published public var draftMessage = ""
-    @Published public private(set) var isGenerating = false
-    @Published public private(set) var modelLoaded = false
-    @Published public private(set) var loadedModelName: String?
-    @Published public private(set) var errorMessage: String?
-    @Published public private(set) var lastFailedPrompt: String?
-    @Published public private(set) var lastGenerationMetrics: GenerationMetrics?
+    public private(set) var sessions: [ChatSessionRecord] = []
+    public private(set) var messages: [ChatMessageRecord] = []
+    public var selectedSessionID: UUID?
+    public var draftMessage = ""
+    public private(set) var isGenerating = false
+    public private(set) var modelLoaded = false
+    public private(set) var loadedModelName: String?
+    public private(set) var errorMessage: String?
+    public private(set) var lastFailedPrompt: String?
+    public private(set) var lastGenerationMetrics: GenerationMetrics?
 
     private var generationTask: Task<Void, Never>?
     private var activeAssistantMessageID: UUID?
@@ -152,7 +154,7 @@ public final class ChatViewModel: ObservableObject {
                 var generationFailed = false
 
                 do {
-                    for try await chunk in self.inferenceEngine.generateStream(
+                    for try await chunk in await self.inferenceEngine.generateStream(
                         prompt: text,
                         options: GenerationOptions()
                     ) {
@@ -265,10 +267,8 @@ public final class ChatViewModel: ObservableObject {
             }
         }
 
-        await MainActor.run {
-            self.lastFailedPrompt = prompt
-            self.setError("Generation failed: \(error.localizedDescription)")
-        }
+        self.lastFailedPrompt = prompt
+        self.setError("Generation failed: \(error.localizedDescription)")
     }
 
     private func setError(_ message: String) {

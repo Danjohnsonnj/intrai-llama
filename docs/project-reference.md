@@ -52,6 +52,7 @@ Discovery complete for MVP boundaries. Entering implementation with explicit pha
 - `docs/mvp-user-flows.md`
 - `docs/quality-gates.md`
 - `docs/phases-v1.1-v1.2.md`
+- Canonical app source root: `intrai-llamacpp/intrai-llamacpp/Intrai`
 
 ### Data Models
 
@@ -62,6 +63,7 @@ Discovery complete for MVP boundaries. Entering implementation with explicit pha
 ### AI Service Design (MVP)
 
 - Embedded `llama.cpp` loaded through `llama.xcframework`.
+- XCFramework build path is iOS-only for MVP (iphoneos + iphonesimulator slices).
 - No local server boundary in v1.
 - Model selected via manual `.gguf` import.
 - Streaming generation loop emits chunks to the UI.

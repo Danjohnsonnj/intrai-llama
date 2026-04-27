@@ -70,9 +70,9 @@ All error domains must map to user-friendly messages in `Features/Chat`.
 
 1. Build framework from local clone:
    - Repo: `~/Local Documents/repos/llama.cpp`
-   - Command: `./build-xcframework.sh`
+   - Command: `./scripts/setup-llama-xcframework.sh` (from Intrai repo root)
 2. Locate build artifact:
-   - `~/Local Documents/repos/llama.cpp/build-apple/llama.xcframework`
+   - `vendor/llama/llama.xcframework`
 3. Add framework to Intrai target:
    - `Frameworks, Libraries, and Embedded Content`.
 4. Add thin Swift bridge in `Inference` layer:
@@ -81,6 +81,11 @@ All error domains must map to user-friendly messages in `Features/Chat`.
    - model load success
    - token stream begins
    - cancellation path releases resources
+
+### MVP Targeting Constraint
+
+- Build and package only iOS slices (device + simulator).
+- Do not include macOS, visionOS, or tvOS slices in MVP framework artifacts.
 
 ## Non-Goals for v1 Architecture
 

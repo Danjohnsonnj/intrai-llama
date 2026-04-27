@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SessionListView: View {
-    @ObservedObject var viewModel: ChatViewModel
+    @Bindable var viewModel: ChatViewModel
 
     var body: some View {
         List(selection: $viewModel.selectedSessionID) {

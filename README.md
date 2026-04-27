@@ -32,6 +32,7 @@ The v1 release is intentionally strict and focused on core chat reliability.
 - Xcode 26+
 - Target hardware: iPhone 16 Pro and newer Pro-class iPhones
 - Local clone of `llama.cpp` at `~/Local Documents/repos/llama.cpp`
+- iOS-only `llama.xcframework` build path (simulator + device slices only)
 
 ## Architecture
 
@@ -50,14 +51,16 @@ The v1 release is intentionally strict and focused on core chat reliability.
 - **v1.1**: In-app model download workflow.
 - **v1.2**: Performance baseline and throughput target enforcement.
 
-## Building (Planned Workflow)
+## Building (MVP Workflow)
 
-Intrai will integrate a locally built `llama.xcframework` from `llama.cpp`.
-At implementation time, the expected workflow is:
+Intrai integrates a locally built **iOS-only** `llama.xcframework` from `llama.cpp`.
+MVP intentionally excludes non-iOS framework slices to reduce build complexity and disk usage.
 
-1. Build XCFramework from local `llama.cpp` clone (`./build-xcframework.sh`).
-2. Add `build-apple/llama.xcframework` to the Intrai Xcode project.
-3. Build Intrai for simulator/device from Xcode.
+1. Build iOS-only XCFramework from local `llama.cpp` clone:
+   - `chmod +x scripts/setup-llama-xcframework.sh`
+   - `./scripts/setup-llama-xcframework.sh`
+2. Add `vendor/llama/llama.xcframework` to the Intrai Xcode project.
+3. Build Intrai for iOS simulator/device from Xcode.
 
 ## Documentation
 
@@ -67,6 +70,10 @@ At implementation time, the expected workflow is:
 - [User Flows](docs/mvp-user-flows.md) - strict v1 UX flows and error behavior
 - [Quality Gates](docs/quality-gates.md) - test checklist and instrumentation for MVP stability
 - [Roadmap Phases](docs/phases-v1.1-v1.2.md) - scoped requirements for v1.1 and v1.2
+
+## Source Layout
+
+- Canonical app source root: `intrai-llamacpp/intrai-llamacpp/Intrai`
 
 ## License
 

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-public actor SwiftDataMessageRepository: MessageRepository {
+public final class SwiftDataMessageRepository: MessageRepository {
     private let context: ModelContext
 
     public init(context: ModelContext) {

@@ -31,8 +31,8 @@ public struct GenerationMetrics: Sendable {
     }
 }
 
-public protocol MetricsRecorder: Sendable {
-    func recordGeneration(_ metrics: GenerationMetrics)
+nonisolated public protocol MetricsRecorder: Sendable {
+    func recordGeneration(_ metrics: GenerationMetrics) async
 }
 
 public actor InMemoryMetricsRecorder: MetricsRecorder {
@@ -40,15 +40,15 @@ public actor InMemoryMetricsRecorder: MetricsRecorder {
 
     public init() {}
 
-    public func recordGeneration(_ metrics: GenerationMetrics) {
+    public func recordGeneration(_ metrics: GenerationMetrics) async {
         generations.append(metrics)
     }
 }
 
-public struct ConsoleMetricsRecorder: MetricsRecorder {
+nonisolated public struct ConsoleMetricsRecorder: MetricsRecorder {
     public init() {}
 
-    public func recordGeneration(_ metrics: GenerationMetrics) {
+    public func recordGeneration(_ metrics: GenerationMetrics) async {
         print(
             """
             [IntraiMetrics] session=\(metrics.sessionID) prompt=\(metrics.promptID) \

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ChatThreadView: View {
-    @ObservedObject var viewModel: ChatViewModel
+    @Bindable var viewModel: ChatViewModel
 
     var body: some View {
         VStack(spacing: 0) {
@@ -77,7 +77,7 @@ struct ChatThreadView: View {
 
     private var composer: some View {
         VStack(spacing: 8) {
-            if let failedPrompt = viewModel.lastFailedPrompt {
+            if viewModel.lastFailedPrompt != nil {
                 HStack {
                     Text("Last failed prompt ready to retry")
                         .font(.caption)

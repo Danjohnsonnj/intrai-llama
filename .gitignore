@@ -3,8 +3,7 @@
 # Xcode
 DerivedData/
 *.xcuserstate
-*.xcworkspace/xcuserdata/
-*.xcodeproj/xcuserdata/
+**/xcuserdata/
 
 # Swift Package Manager
 .build/
