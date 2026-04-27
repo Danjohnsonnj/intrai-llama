@@ -121,10 +121,18 @@ all Swift upcoming features enabled (Swift 5 language mode, preparing for Swift 
   - estimate input token count through `InferenceEngine`
   - evaluate pressure via `TokenBudgetPolicy`
   - apply soft compaction to older history only when over budget
+  - for recap-style or oversized resumed-thread requests, switch to a deterministic
+    forced recap path before the normal loop:
+    - match recap intent via normalized prompt phrase rules and/or size guardrails
+    - compose bounded recap prompt from summary + recent tail turns + user recap request
+    - skip broad history assembly to reduce preflight memory pressure
+    - fail fast with actionable context guidance when recap prompt still exceeds limits
 - Generated telemetry captures:
   - ttft/duration/chars streamed
   - estimated input tokens and context utilization
   - compaction flag
+  - recap safety flags (`forcedRecapCompactionApplied`, `recapIntentMatched`,
+    `preflightHistoryTruncatedForSafety`)
   - terminal reason (`completed`, `cancelled`, `failed`, `contextLimited`)
 - UI consumes this state through:
   - `contextNotice` + details expansion (`Context near limit`, `Context high`,

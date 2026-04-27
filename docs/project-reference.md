@@ -74,11 +74,20 @@ Manual smoke testing on device is pending.
 - Streaming generation loop emits chunks to the UI.
 - Prompt preflight estimates token usage against current context window and applies
   soft history compaction only when needed.
+- Recap-style prompts (for example, 'Summarize this chat', 'Where were we?') on large
+  resumed threads can trigger deterministic forced compaction to preserve stability:
+  - bounded summary + recent tail messages are used instead of broad full-history assembly
+  - history truncation is explicit and tracked for diagnostics
+  - fail-fast context guidance is shown if recap prompt still exceeds safe limits
 - Chat thread surfaces monitoring states with user-facing labels:
   - Context: `Context healthy`, `Context near limit`, `Compaction active`, `Context blocked`
   - Generation: `Generation healthy`, `Generation slow`, `Compacted response`,
     `Generation cancelled`, `Generation failed`, `Context limited`
 - Context detail UI can show budget utilization and latest generation diagnostics.
+- Local diagnostics include recap-safety telemetry:
+  - `forcedRecapCompactionApplied`
+  - `recapIntentMatched`
+  - `preflightHistoryTruncatedForSafety`
 - Chat message markdown rendering uses `MarkdownUI` to correctly handle multiline content
   and table blocks in message bubbles.
 - Header model status uses concise labels (for example, 'Model ready', 'Loading model',

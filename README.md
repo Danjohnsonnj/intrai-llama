@@ -15,6 +15,7 @@ The v1 release is intentionally strict and focused on core chat reliability.
 - **Streaming responses**: Assistant output streams into the active message bubble.
 - **Manual model import**: User imports a local `.gguf` file and loads it for inference.
 - **Context budget monitoring**: Preflight context checks surface near-limit/full states with detail messaging and soft history compaction.
+- **Recap safety compaction**: Recap-style prompts on long resumed chats use deterministic forced compaction to reduce memory pressure and avoid instability.
 - **Markdown chat UX**: Message bubbles render markdown and transcript copy supports markdown-formatted export.
 - **Baseline error handling**: Friendly errors for model load failure, generation failure,
   and cancellation, with retry support for failed prompts.
@@ -57,8 +58,9 @@ The v1 release is intentionally strict and focused on core chat reliability.
 
 Core implementation is complete and the Xcode project builds with zero errors and zero
 warnings. `LlamaCppRuntime` now runs the real llama.cpp tokenization/sampling decode
-loop for streaming generation. Remaining validation work is focused on real-device smoke
-testing and tuning defaults.
+loop for streaming generation. Recap-style prompts now use a bounded compaction path on
+large resumed chats to keep recap generation stable under memory pressure. Remaining
+validation work is focused on real-device smoke testing and tuning defaults.
 
 ## Building (MVP Workflow)
 

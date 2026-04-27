@@ -28,6 +28,8 @@
    - assembles candidate prompt from summary + recent history + user input
    - estimates input tokens and evaluates context budget pressure
    - applies soft compaction to older history only when required
+   - for recap-style prompts on very large resumed chats, applies deterministic forced
+     compaction using bounded summary + recent tail turns before token estimation
 3. App surfaces context notice/details when pressure or compaction applies.
 4. App persists user message.
 5. App creates assistant placeholder message with status `streaming`.
@@ -47,6 +49,20 @@
   - `Context high`
   - `Context full`
   - `History compacted to preserve response quality`
+  - `History compacted for recap stability`
+
+### Recap Request Stability Path
+
+1. User submits recap-style request (for example, `Summarize this chat`,
+   `What were we talking about?`, `Where were we?`, `Catch me up`) in a long resumed thread.
+2. Preflight detects recap intent and/or oversized history and switches to recap safety mode.
+3. App composes a bounded recap prompt from:
+   - persisted rolling summary (clamped)
+   - recent verbatim tail turns
+   - user recap request
+4. Older history outside the bounded window is intentionally omitted for stability.
+5. If the bounded recap prompt still exceeds safe limits, app stops with actionable context guidance
+   instead of looping or freezing.
 
 ## 3) Manual Model Import Flow (MVP)
 
