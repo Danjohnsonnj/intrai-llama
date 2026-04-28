@@ -205,13 +205,13 @@
 			);
 			mainGroup = 21BD76C32F9EE2E300839979;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AA0000022FA0000000FF0001 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 21BD76CD2F9EE2E300839979 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
-			packageReferences = (
-				AA0000022FA0000000FF0001 /* XCRemoteSwiftPackageReference "MarkdownUI" */,
-			);
 			targets = (
 				21BD76CB2F9EE2E300839979 /* intrai-llamacpp */,
 				21BD76D82F9EE2E400839979 /* intrai-llamacppTests */,
@@ -280,17 +280,6 @@
 			targetProxy = 21BD76E42F9EE2E400839979 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		AA0000022FA0000000FF0001 /* XCRemoteSwiftPackageReference "MarkdownUI" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCBuildConfiguration section */
 		21BD76EB2F9EE2E400839979 /* Debug */ = {
@@ -607,10 +596,21 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		AA0000022FA0000000FF0001 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		AA0000022FA0000000FF0002 /* MarkdownUI */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AA0000022FA0000000FF0001 /* XCRemoteSwiftPackageReference "MarkdownUI" */;
+			package = AA0000022FA0000000FF0001 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
 		};
 /* End XCSwiftPackageProductDependency section */

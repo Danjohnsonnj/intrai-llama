@@ -1,5 +1,16 @@
 # Intrai MVP User Flows
 
+## Global system prompt and user memory
+
+1. User opens **Global settings** from the main screen toolbar.
+2. User edits **System prompt** and/or **User memory** (multiline; each field has a character limit).
+3. User taps **Save** to persist; **Cancel** discards unsaved draft text in the sheet.
+4. **Reset system prompt to default** sets the draft to the built-in default; user still saves to persist.
+5. On each user message in any chat, the app prepends the effective system line and, when
+   user memory is non-empty, a `User memory:` block, then the usual summary and conversation
+   before the current user turn. Whitespace-only system prompt is replaced with the built-in
+   default at generation time.
+
 ## 1) Session Management Flow
 
 ### Create Session

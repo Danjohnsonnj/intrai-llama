@@ -6,6 +6,8 @@ public struct ChatRootView: View {
     @State private var viewModel: ChatViewModel
     @State private var isShowingModelImporter = false
     @State private var isShowingGlobalSettings = false
+    @State private var systemPromptDraft = ""
+    @State private var userMemoryDraft = ""
     @State private var copyToastMessage: String?
 
     public init(viewModel: ChatViewModel) {
@@ -95,33 +97,12 @@ public struct ChatRootView: View {
             await viewModel.bootstrap()
         }
         .sheet(isPresented: $isShowingGlobalSettings) {
-            NavigationStack {
-                Form {
-                    Section("Global behavior (coming soon)") {
-                        LabeledContent("System prompt") {
-                            Text("Not configured")
-                                .foregroundStyle(.secondary)
-                        }
-                        LabeledContent("User memory") {
-                            Text("Not configured")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Section("Scope") {
-                        Text("These controls are global to the app, not per chat.")
-                        Text("A future option can apply system prompt updates to existing chats.")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .navigationTitle("Global settings")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
-                            isShowingGlobalSettings = false
-                        }
-                    }
-                }
+            globalSettingsSheet
+        }
+        .onChange(of: isShowingGlobalSettings) { _, isOpen in
+            if isOpen {
+                systemPromptDraft = viewModel.globalSystemPrompt
+                userMemoryDraft = viewModel.userMemory
             }
         }
         .fileImporter(
@@ -187,6 +168,83 @@ public struct ChatRootView: View {
         .padding(12)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.6))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var globalSettingsSheet: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextEditor(text: $systemPromptDraft)
+                        .frame(minHeight: 120)
+                } header: {
+                    Text("System prompt")
+                } footer: {
+                    characterCountFooter(
+                        current: systemPromptDraft.count,
+                        max: GlobalPromptSettingsStore.maxSystemPromptChars
+                    )
+                }
+
+                Section {
+                    TextEditor(text: $userMemoryDraft)
+                        .frame(minHeight: 120)
+                } header: {
+                    Text("User memory")
+                } footer: {
+                    VStack(alignment: .leading, spacing: 6) {
+                        characterCountFooter(
+                            current: userMemoryDraft.count,
+                            max: GlobalPromptSettingsStore.maxUserMemoryChars
+                        )
+                        Text("Included on every request when this field is not empty, after the system prompt and before the conversation.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section {
+                    Button("Reset system prompt to default") {
+                        systemPromptDraft = GlobalPromptSettingsStore.defaultSystemPrompt
+                    }
+                }
+
+                Section("Scope") {
+                    Text("Applies to every chat. A blank system prompt uses the built-in default. Edits take effect on the next message in any chat.")
+                }
+            }
+            .onChange(of: systemPromptDraft) { _, new in
+                if new.count > GlobalPromptSettingsStore.maxSystemPromptChars {
+                    systemPromptDraft = String(new.prefix(GlobalPromptSettingsStore.maxSystemPromptChars))
+                }
+            }
+            .onChange(of: userMemoryDraft) { _, new in
+                if new.count > GlobalPromptSettingsStore.maxUserMemoryChars {
+                    userMemoryDraft = String(new.prefix(GlobalPromptSettingsStore.maxUserMemoryChars))
+                }
+            }
+            .navigationTitle("Global settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { isShowingGlobalSettings = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        viewModel.saveGlobalPromptSettings(
+                            systemPrompt: systemPromptDraft,
+                            userMemory: userMemoryDraft
+                        )
+                        isShowingGlobalSettings = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func characterCountFooter(current: Int, max: Int) -> some View {
+        Text("\(min(current, max)) / \(max) characters")
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     private func copyChatAsMarkdownToClipboard() {

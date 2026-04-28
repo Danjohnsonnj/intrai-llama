@@ -30,6 +30,11 @@ Manual smoke testing on device is pending.
 - Manual `.gguf` model import and local model loading.
 - Markdown rendering in chat messages and markdown-formatted clipboard export.
 - Error and recovery flows for model load failure, generation failure, and cancellation.
+- **Global system prompt and user memory** (v1): editable in app settings, stored in
+  `UserDefaults`, with character limits. Injected on every send after the system line and
+  before summary/history. Empty/whitespace system prompt uses the built-in default line;
+  empty user memory omits the user memory block. Edits apply on the next user message in
+  any chat.
 
 ### Out of Scope for MVP (Deferred)
 
@@ -124,9 +129,8 @@ Manual smoke testing on device is pending.
 
 ## Future Product Requirements and Improvements
 
-- [ ] User editable global "system prompt": persistent system prompt that dictates the AI's persona, core constraints, and response format, anchoring all user interactions to ensure consistent behavior, safety, and brand alignment across the entire conversation session
-    - [ ] An updated system prompt can optionally be applied to existing chats
-- [ ] User defined and editable global "user memory": persistently store and retrieve as needed explicit user preferences and factual history across sessions, injecting them into the context window to personalize responses, separate from static system prompt instructions.
+- [ ] Structured or searchable user memory; optional iCloud or export for prompt settings.
+- [ ] Per-session system prompt override or optional snapshot of prompt per chat (v1 is global only; next message always uses current global text).
 
 ## Known Pending Items
 

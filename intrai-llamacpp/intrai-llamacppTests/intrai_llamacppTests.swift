@@ -110,4 +110,28 @@ struct intrai_llamacppTests {
         #expect(!ChatViewModel.isEligibleForAutoRename(sessionTitle: "Custom topic"))
     }
 
+    @Test func globalPromptLeadFallsBackToDefaultWhenSystemBlank() {
+        let sections = GlobalPromptSettingsStore.promptLeadSections(
+            storedSystemPrompt: "   \n  ",
+            storedUserMemory: ""
+        )
+        #expect(sections.count == 1)
+        #expect(sections[0] == GlobalPromptSettingsStore.defaultSystemPrompt)
+    }
+
+    @Test func globalPromptLeadAppendsUserMemoryWhenNonEmpty() {
+        let sections = GlobalPromptSettingsStore.promptLeadSections(
+            storedSystemPrompt: "Be concise.",
+            storedUserMemory: " Prefer short answers. "
+        )
+        #expect(sections.count == 2)
+        #expect(sections[0] == "Be concise.")
+        #expect(sections[1] == "User memory:\nPrefer short answers.")
+    }
+
+    @Test func globalPromptEffectiveSystemUsesDefaultForWhitespaceOnly() {
+        let t = GlobalPromptSettingsStore.effectiveSystemPromptForPrompt(stored: "  \n\t  ")
+        #expect(t == GlobalPromptSettingsStore.defaultSystemPrompt)
+    }
+
 }

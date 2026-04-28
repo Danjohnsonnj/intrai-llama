@@ -37,6 +37,11 @@ public final class ChatViewModel {
     public private(set) var isShowingContextNoticeDetails = false
     public private(set) var contextFidelityState: ContextFidelityState = .normal
 
+    /// Global system prompt as stored; whitespace-only is treated as the default line at generation time.
+    public var globalSystemPrompt: String
+    /// Freeform user memory; when empty, the user memory block is omitted from the prompt.
+    public var userMemory: String
+
     private var generationTask: Task<Void, Never>?
     private var activeAssistantMessageID: UUID?
     private var activeGenerationPromptID: UUID?
@@ -106,6 +111,16 @@ public final class ChatViewModel {
         self.messageRepository = messageRepository
         self.inferenceEngine = inferenceEngine
         self.metricsRecorder = metricsRecorder
+        let loaded = GlobalPromptSettingsStore.load()
+        self.globalSystemPrompt = loaded.systemPrompt
+        self.userMemory = loaded.userMemory
+    }
+
+    public func saveGlobalPromptSettings(systemPrompt: String, userMemory: String) {
+        GlobalPromptSettingsStore.save(systemPrompt: systemPrompt, userMemory: userMemory)
+        let reloaded = GlobalPromptSettingsStore.load()
+        self.globalSystemPrompt = reloaded.systemPrompt
+        self.userMemory = reloaded.userMemory
     }
 
     public func bootstrap() async {
@@ -742,7 +757,10 @@ public final class ChatViewModel {
     ) -> (prompt: String, historyTruncatedForSafety: Bool) {
         let boundedSummary = summary.map { String($0.suffix(maxSummaryChars)) }
         let tailMessages = Array(history.suffix(forcedRecapTailMessageCount))
-        var sections: [String] = ["You are Intrai, a concise local assistant."]
+        var sections: [String] = GlobalPromptSettingsStore.promptLeadSections(
+            storedSystemPrompt: globalSystemPrompt,
+            storedUserMemory: userMemory
+        )
         if let boundedSummary, !boundedSummary.isEmpty {
             sections.append("Conversation summary:\n\(boundedSummary)")
         }
@@ -769,9 +787,10 @@ public final class ChatViewModel {
     }
 
     private func composePrompt(summary: String?, history: [ChatMessageRecord], userInput: String) -> String {
-        var sections: [String] = []
-
-        sections.append("You are Intrai, a concise local assistant.")
+        var sections: [String] = GlobalPromptSettingsStore.promptLeadSections(
+            storedSystemPrompt: globalSystemPrompt,
+            storedUserMemory: userMemory
+        )
         if let summary, !summary.isEmpty {
             sections.append("Conversation summary:\n\(String(summary.suffix(maxSummaryChars)))")
         }
