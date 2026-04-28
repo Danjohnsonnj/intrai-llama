@@ -114,10 +114,14 @@ public final class ChatViewModel {
         await loadMessages(for: selectedSessionID)
     }
 
-    public func refreshSessions() async {
+    public func refreshSessions(autoSelectFirstIfNone: Bool = true) async {
         do {
             sessions = try await sessionRepository.listSessions()
-            if selectedSessionID == nil {
+            if let selected = selectedSessionID, !sessions.contains(where: { $0.id == selected }) {
+                selectedSessionID = nil
+                messages = []
+            }
+            if selectedSessionID == nil, autoSelectFirstIfNone {
                 selectedSessionID = sessions.first?.id
             }
         } catch {
@@ -160,10 +164,7 @@ public final class ChatViewModel {
                 selectedSessionID = nil
                 messages = []
             }
-            await refreshSessions()
-            if let firstSession = sessions.first {
-                await loadMessages(for: firstSession.id)
-            }
+            await refreshSessions(autoSelectFirstIfNone: false)
         } catch {
             setError("Failed to delete session: \(error.localizedDescription)")
         }
